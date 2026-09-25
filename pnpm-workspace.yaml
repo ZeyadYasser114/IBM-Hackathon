@@ -1,0 +1,8 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+
+allowBuilds:
+  unrs-resolver: true
+  esbuild: true
+  "@next/swc-win32-x64-msvc": true
