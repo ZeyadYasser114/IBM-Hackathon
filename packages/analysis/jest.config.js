@@ -10,4 +10,7 @@ export default {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { useESM: true }],
   },
+  // Never run compiled output: dist/ suites are stale duplicates of src/
+  // and once masked a real failure behind passing stale tests.
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 };

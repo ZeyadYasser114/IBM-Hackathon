@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --ext .ts",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "example": "tsc -p tsconfig.examples.json && node dist-examples/examples/ingest-example.js",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
