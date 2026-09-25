@@ -128,5 +128,17 @@ describe('@mergemind/fixtures — structural invariants', () => {
     it('returns scenario-03-dependency-assumption', () => {
       expect(getScenario('scenario-03-dependency-assumption')).toBe(scenario03DependencyAssumption);
     });
+
+    it('throws a controlled error for an unknown scenario id', () => {
+      expect(() =>
+        getScenario('scenario-99-does-not-exist' as 'scenario-01-business-rule'),
+      ).toThrow(/unknown scenario id/);
+    });
+
+    it('is deterministic — repeated lookups return the same reference', () => {
+      expect(getScenario('scenario-01-business-rule')).toBe(
+        getScenario('scenario-01-business-rule'),
+      );
+    });
   });
 });

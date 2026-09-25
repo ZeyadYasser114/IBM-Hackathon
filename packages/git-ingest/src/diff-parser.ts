@@ -109,12 +109,13 @@ export type ParsedFile = {
  *   - Binary files (Binary files ... differ)
  *   - Empty diffs (returns [])
  *   - Malformed / truncated input (skips unparseable chunks)
+ *   - Non-string input (returns [] — never throws)
  *
  * @param raw       Full output of `git diff --unified=N` or equivalent
  * @returns         One ParsedFile per changed file; order matches the diff
  */
 export function parseDiff(raw: string): ParsedFile[] {
-  if (!raw.trim()) return [];
+  if (typeof raw !== 'string' || !raw.trim()) return [];
 
   // Split on the "diff --git" boundary, keeping each chunk self-contained.
   const chunks = raw.split(/^(?=diff --git )/m).filter((c) => c.trim());

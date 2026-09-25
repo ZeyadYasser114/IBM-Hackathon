@@ -582,3 +582,44 @@ Semantic conflict detection, Bob multi-agent orchestration, conflict-graph UI,
 automated resolution, and Change Passport generation exist here as **types,
 interfaces, and stubs only**. Do not mistake them for implementations — the
 feature branches own them.
+
+---
+
+## Testing and CI/CD
+
+Testing uses **Jest 29 + ts-jest (ESM)** — one suite per package under
+`packages/*/src/*.test.ts`. Tests are deterministic: in-memory adapters,
+pasted diffs, and fixed factories. No network calls in unit tests.
+
+```bash
+pnpm install          # install all workspace dependencies (requires Node >= 18, pnpm >= 11)
+pnpm test             # run all package test suites
+pnpm lint             # eslint across packages/* and apps/*
+pnpm typecheck        # tsc --noEmit across packages/* and apps/*
+pnpm build            # production build (packages, then Next.js app)
+pnpm format:check     # prettier check (write with `pnpm format`)
+pnpm check            # ← the one quality command: build + typecheck + lint + format:check + test
+```
+
+Run `pnpm check` before every push. It is the same sequence CI runs.
+
+**CI** (`.github/workflows/ci.yml`) runs on pushes to `main` and pull
+requests targeting `main`. Stages, in order:
+
+1. Check out the repository
+2. Set up pnpm + Node.js 20
+3. `pnpm install --frozen-lockfile`
+4. `pnpm build`
+5. `pnpm typecheck`
+6. `pnpm lint`
+7. `pnpm format:check`
+8. `pnpm test`
+
+Every stage must pass — there are no `|| true` fallbacks, so a red gate
+fails the workflow and blocks merge. CI needs no secrets: the only
+environment variables (`PORT`, `VERCEL_URL`, see `.env.example`) have safe
+defaults and are validated at startup by `apps/web/src/lib/env.ts`.
+
+**Deployment:** no automatic deployment is configured. The pipeline provides
+CI/build verification only; a deployment target can be connected later
+without changing the quality gates.

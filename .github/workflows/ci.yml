@@ -1,13 +1,28 @@
-# MergeMind CI — runs the full quality suite on every push and pull request.
+# MergeMind CI — runs the full quality suite on pushes to main and
+# pull requests targeting main.
 #
 # Teammate contract: if this workflow is green, your branch is safe to merge.
 # Run the same gates locally before pushing: `pnpm check`
+#
+# Every step must pass — there are intentionally no `|| true` fallbacks or
+# `continue-on-error` flags. A red gate blocks merge.
 
 name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref so stale green checks cannot mask
+# a newer red run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   quality:
