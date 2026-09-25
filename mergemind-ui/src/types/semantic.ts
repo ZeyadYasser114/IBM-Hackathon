@@ -15,14 +15,28 @@ export interface Assumption {
   id: string;
   /** Human-readable claim this change makes */
   statement: string;
-  /** File path relative to repo root */
+  /** File path relative to repo root (may be "—" if not traceable) */
   sourceFile: string;
-  /** Line range, e.g. "12-18" */
+  /** Line range, e.g. "12-18" (may be "—" if not traceable) */
   sourceLine: string;
   /** Which shared variable / concept this assumption touches */
   dependsOn: string;
   /** Which analysis agent produced this assumption */
   producedBy: string;
+}
+
+// ── Evidence excerpt ──────────────────────────────────────────────────────────
+
+export interface EvidenceExcerpt {
+  /** File path relative to repo root. May be undefined when the file path
+   *  was not resolvable (e.g. generated or deleted file). */
+  file?: string;
+  /** Human-readable location hint, e.g. "line 32" or "function manageSubscription()" */
+  location: string;
+  /** The raw code or text excerpt that constitutes the evidence */
+  snippet: string;
+  /** Which agent/step produced this excerpt */
+  source: string;
 }
 
 // ── Conflict ──────────────────────────────────────────────────────────────────
@@ -31,14 +45,23 @@ export interface Conflict {
   id: string;
   kind: ConflictKind;
   severity: Severity;
+  /** 0–100. High = engine is certain; Low = plausible but unconfirmed. */
+  confidence: number;
   title: string;
+  /** One-paragraph plain-language explanation for a developer audience */
   description: string;
   /** The original requirement text this conflict violates */
   requirementText: string;
+  /** The shared entity/contract/concept both sides disagree about */
+  affectedContract: string;
   assumptionA: Assumption;
   assumptionB: Assumption;
   /** Files directly involved */
   affectedFiles: string[];
+  /** Concrete code/text excerpts that make the finding auditable */
+  evidenceExcerpts: EvidenceExcerpt[];
+  /** What the developer should inspect or verify next */
+  verificationHint: string;
   /** Whether a resolution has been accepted */
   resolved: boolean;
   /** Bob-proposed resolution summary */
