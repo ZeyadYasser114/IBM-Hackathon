@@ -7,6 +7,7 @@
     "node": ">=18.0.0",
     "pnpm": ">=11.0.0"
   },
+  "packageManager": "pnpm@12.6.0",
   "scripts": {
     "build": "pnpm -r --filter \"./packages/*\" build && pnpm -r --filter \"./apps/*\" build",
     "dev": "pnpm --filter \"./apps/web\" dev",
