@@ -565,7 +565,7 @@ the canonical names.
 - `packages/domain` types + zod schemas (every package breaks on field changes)
 - `IngestAdapter`, `AgentRunner`, `ConflictDetector` contracts
 - tRPC `health.*` / `verify.*` procedure names and the `AppRouter` type
-- `pnpm check` gate set and CI workflow (`.github/workflows/ci.yml`)
+- `pnpm check` gate set (run it locally before merge — no CI workflow)
 
 ### Commands that must pass before merge
 
@@ -573,7 +573,7 @@ the canonical names.
 pnpm check   # = build && typecheck && lint && format:check && test
 ```
 
-CI runs the same sequence on every push/PR. A red gate blocks merge — fix the
+Run `pnpm check` locally before every merge. A red gate blocks merge — fix the
 baseline you touched; never weaken a gate to make it pass.
 
 ### What is deliberately NOT built yet
@@ -585,7 +585,7 @@ feature branches own them.
 
 ---
 
-## Testing and CI/CD
+## Testing and Quality Gates
 
 Testing uses **Jest 29 + ts-jest (ESM)** — one suite per package under
 `packages/*/src/*.test.ts`. Tests are deterministic: in-memory adapters,
@@ -601,25 +601,12 @@ pnpm format:check     # prettier check (write with `pnpm format`)
 pnpm check            # ← the one quality command: build + typecheck + lint + format:check + test
 ```
 
-Run `pnpm check` before every push. It is the same sequence CI runs.
+Run `pnpm check` before every push. Every stage must pass — a red gate
+blocks merge. There is currently no CI workflow (it was removed), so the
+local `pnpm check` run is the quality gate.
 
-**CI** (`.github/workflows/ci.yml`) runs on pushes to `main` and pull
-requests targeting `main`. Stages, in order:
+Environment variables need no secrets: the only variables (`PORT`,
+`VERCEL_URL`, see `.env.example`) have safe defaults and are validated at
+startup by `apps/web/src/lib/env.ts`.
 
-1. Check out the repository
-2. Set up pnpm + Node.js 20
-3. `pnpm install --frozen-lockfile`
-4. `pnpm build`
-5. `pnpm typecheck`
-6. `pnpm lint`
-7. `pnpm format:check`
-8. `pnpm test`
-
-Every stage must pass — there are no `|| true` fallbacks, so a red gate
-fails the workflow and blocks merge. CI needs no secrets: the only
-environment variables (`PORT`, `VERCEL_URL`, see `.env.example`) have safe
-defaults and are validated at startup by `apps/web/src/lib/env.ts`.
-
-**Deployment:** no automatic deployment is configured. The pipeline provides
-CI/build verification only; a deployment target can be connected later
-without changing the quality gates.
+**Deployment:** no automatic deployment is configured.
