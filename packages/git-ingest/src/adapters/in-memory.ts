@@ -31,10 +31,7 @@ export class InMemoryAdapter implements IngestAdapter {
     return ref;
   }
 
-  async getDiffs(
-    _base: BranchRef,
-    feature: BranchRef,
-  ): Promise<ChangedFile[]> {
+  async getDiffs(_base: BranchRef, feature: BranchRef): Promise<ChangedFile[]> {
     // Return only files belonging to this feature branch
     return this.changedFiles.filter((f) => f.branchName === feature.name);
   }

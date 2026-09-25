@@ -14,10 +14,7 @@
  * No AI, no semantic analysis — purely deterministic ingestion.
  */
 
-import {
-  PastedDiffAdapter,
-  createRepositoryContext,
-} from '../src/index.js';
+import { PastedDiffAdapter, createRepositoryContext } from '../src/index.js';
 
 // ---------------------------------------------------------------------------
 // Scenario: two feature branches both touch auth/billing
@@ -110,7 +107,9 @@ async function main() {
     const rename = f.previousPath ? ` (was: ${f.previousPath})` : '';
     const binary = f.patch === null ? ' [binary/no-patch]' : '';
     console.log(`  [${f.kind.padEnd(8)}] ${f.path}${rename}${binary}`);
-    console.log(`             branch: ${f.branchName}  +${f.additions}/-${f.deletions}  lang: ${f.language ?? 'unknown'}`);
+    console.log(
+      `             branch: ${f.branchName}  +${f.additions}/-${f.deletions}  lang: ${f.language ?? 'unknown'}`,
+    );
   }
   console.log();
 

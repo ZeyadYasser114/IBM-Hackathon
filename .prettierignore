@@ -1,0 +1,10 @@
+# Prettier never reformats these: build output, caches, lockfiles,
+# generated files, and prose docs (formatting markdown churns tables).
+dist/
+dist-examples/
+.next/
+coverage/
+*.tsbuildinfo
+pnpm-lock.yaml
+apps/web/next-env.d.ts
+**/*.md

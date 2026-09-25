@@ -172,7 +172,7 @@ export const scenario02ContractMismatch: ScenarioFixture = {
   title: 'Event payload field rename: userId (emitter) vs user_id (consumer)',
   originalRequirement:
     'Implement an activity-feed service that records actions performed by users. ' +
-    'The event payload must include the acting user\'s identifier.',
+    "The event payload must include the acting user's identifier.",
   conflictCategory: 'CONTRACT',
 
   baseFiles: [

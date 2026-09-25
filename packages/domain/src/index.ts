@@ -46,15 +46,9 @@ export {
 // Domain models
 // ---------------------------------------------------------------------------
 
-export type {
-  AcceptanceCriterion,
-  FeatureRequest,
-} from './models/feature-request.js';
+export type { AcceptanceCriterion, FeatureRequest } from './models/feature-request.js';
 
-export type {
-  BranchRef,
-  RepositorySource,
-} from './models/repository-source.js';
+export type { BranchRef, RepositorySource } from './models/repository-source.js';
 
 export type { ChangedFile } from './models/changed-file.js';
 
@@ -70,15 +64,9 @@ export type {
 
 export type { ConflictFinding } from './models/conflict-finding.js';
 
-export type {
-  VerificationSummary,
-  VerificationResult,
-} from './models/verification-result.js';
+export type { VerificationSummary, VerificationResult } from './models/verification-result.js';
 
-export type {
-  RiskItem,
-  ChangePassportDraft,
-} from './models/change-passport-draft.js';
+export type { RiskItem, ChangePassportDraft } from './models/change-passport-draft.js';
 
 // ---------------------------------------------------------------------------
 // Legacy exports — kept for backward compatibility with packages written
@@ -89,44 +77,32 @@ export type {
  * @deprecated Use `FeatureRequest` instead.
  * `FeatureRequirement` is retained so existing packages compile without change.
  */
-export type {
-  FeatureRequest as FeatureRequirement,
-} from './models/feature-request.js';
+export type { FeatureRequest as FeatureRequirement } from './models/feature-request.js';
 
 /**
  * @deprecated Use `RepositorySource` instead.
  * `RepositoryContext` is retained so existing packages compile without change.
  * The legacy shape is narrower — consider migrating to `RepositorySource`.
  */
-export type {
-  RepositorySource as RepositoryContext,
-} from './models/repository-source.js';
+export type { RepositorySource as RepositoryContext } from './models/repository-source.js';
 
 /**
  * @deprecated Use `ChangedFile` instead.
  * `FileDiff` is retained so existing packages compile without change.
  */
-export type {
-  ChangedFile as FileDiff,
-} from './models/changed-file.js';
+export type { ChangedFile as FileDiff } from './models/changed-file.js';
 
 /**
  * @deprecated Use `ConflictFinding` instead.
  * `SemanticConflict` is retained so existing packages compile without change.
  */
-export type {
-  ConflictFinding as SemanticConflict,
-} from './models/conflict-finding.js';
+export type { ConflictFinding as SemanticConflict } from './models/conflict-finding.js';
 
 /**
  * @deprecated Use `VerificationResult` from models.
  * Re-exported at the top level for compatibility.
  */
-export type {
-  VerificationResult as VerificationResultLegacy,
-} from './models/verification-result.js';
+export type { VerificationResult as VerificationResultLegacy } from './models/verification-result.js';
 
 // Agent progress — used by existing analysis package
-export type {
-  AgentProgress,
-} from './models/agent-progress.js';
+export type { AgentProgress } from './models/agent-progress.js';

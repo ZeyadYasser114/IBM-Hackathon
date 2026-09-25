@@ -242,9 +242,7 @@ export const scenario03DependencyAssumption: ScenarioFixture = {
     },
     {
       name: 'feature/welcome-email',
-      changedFiles: [
-        { path: 'src/notifications/welcome-email.ts', content: BRANCH_B_WELCOME_TS },
-      ],
+      changedFiles: [{ path: 'src/notifications/welcome-email.ts', content: BRANCH_B_WELCOME_TS }],
       patch: PATCH_B,
     },
   ],
@@ -377,8 +375,7 @@ export const scenario03DependencyAssumption: ScenarioFixture = {
             filePath: 'src/users/register.ts',
             lineStart: 12,
             lineEnd: 12,
-            snippet:
-              '    ...(input.email !== undefined ? { email: input.email } : {}),',
+            snippet: '    ...(input.email !== undefined ? { email: input.email } : {}),',
             branchName: 'feature/optional-email-signup',
             metadata: { symbolKind: 'FunctionDeclaration', symbolName: 'buildUser' },
           },

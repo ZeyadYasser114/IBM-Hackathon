@@ -304,7 +304,7 @@ export const scenario01BusinessRule: ScenarioFixture = {
             lineStart: 7,
             lineEnd: 10,
             snippet:
-              "export function canManageSubscription(user: User): boolean {\n" +
+              'export function canManageSubscription(user: User): boolean {\n' +
               "  // BUG: checks 'admin' but Branch A renamed the privileged role to 'owner'\n" +
               "  return user.role === 'admin';\n" +
               '}',

@@ -1,5 +1,7 @@
 /* Minimal global styles — teams branch may replace with Tailwind or a design system */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -33,7 +35,8 @@ a {
   text-decoration: none;
 }
 
-code, pre {
+code,
+pre {
   font-family: var(--font-mono);
   font-size: 0.875rem;
 }

@@ -387,7 +387,11 @@ describe('AssumptionSchema', () => {
 describe('DependencyReferenceSchema', () => {
   const VALID_DEP = {
     id: VALID_ID,
-    from: { filePath: 'src/billing/service.ts', symbolName: 'checkBillingAccess', branchName: 'feature/billing' },
+    from: {
+      filePath: 'src/billing/service.ts',
+      symbolName: 'checkBillingAccess',
+      branchName: 'feature/billing',
+    },
     to: { filePath: 'src/auth/roles.ts', symbolName: 'checkRole', branchName: 'feature/auth' },
     kind: 'FUNCTION_CALL',
     isCrossModule: false,

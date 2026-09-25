@@ -169,7 +169,16 @@ function parseChunk(chunk: string): ParsedFile | null {
 
   // --- Binary file: no patch, no hunks ---
   if (isBinary) {
-    return { path, previousPath, kind, isBinary: true, patch: null, additions: 0, deletions: 0, hunks: [] };
+    return {
+      path,
+      previousPath,
+      kind,
+      isBinary: true,
+      patch: null,
+      additions: 0,
+      deletions: 0,
+      hunks: [],
+    };
   }
 
   // --- Parse hunks ---
@@ -210,7 +219,10 @@ function parseHunks(fileLines: string[]): DiffHunk[] {
   while (i < fileLines.length) {
     const headerLine = fileLines[i] ?? '';
     const m = headerLine.match(HUNK_HEADER);
-    if (!m) { i++; continue; }
+    if (!m) {
+      i++;
+      continue;
+    }
 
     const baseStart = parseInt(m[1] ?? '0', 10);
     const baseCount = m[2] !== undefined ? parseInt(m[2], 10) : 1;
@@ -230,7 +242,16 @@ function parseHunks(fileLines: string[]): DiffHunk[] {
     const removedLines = bodyLines.filter((l) => l.startsWith('-'));
     const rawHunk = [headerLine, ...bodyLines].join('\n');
 
-    hunks.push({ baseStart, baseCount, headStart, headCount, contextLabel, rawHunk, addedLines, removedLines });
+    hunks.push({
+      baseStart,
+      baseCount,
+      headStart,
+      headCount,
+      contextLabel,
+      rawHunk,
+      addedLines,
+      removedLines,
+    });
   }
 
   return hunks;
@@ -263,27 +284,69 @@ function normalizePath(p: string): string {
 export function inferLanguage(path: string): string | null {
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
   switch (ext) {
-    case 'ts': case 'tsx': case 'mts': case 'cts': return 'typescript';
-    case 'js': case 'jsx': case 'mjs': case 'cjs': return 'javascript';
-    case 'py': return 'python';
-    case 'rb': return 'ruby';
-    case 'go': return 'go';
-    case 'rs': return 'rust';
-    case 'java': return 'java';
-    case 'kt': case 'kts': return 'kotlin';
-    case 'cs': return 'csharp';
-    case 'cpp': case 'cc': case 'cxx': case 'c': case 'h': case 'hpp': return 'cpp';
-    case 'sql': return 'sql';
-    case 'yml': case 'yaml': return 'yaml';
-    case 'json': case 'jsonc': return 'json';
-    case 'toml': return 'toml';
-    case 'md': case 'mdx': return 'markdown';
-    case 'css': case 'scss': case 'sass': case 'less': return 'css';
-    case 'html': case 'htm': return 'html';
-    case 'sh': case 'bash': return 'shell';
-    case 'dockerfile': return 'dockerfile';
-    case 'tf': return 'terraform';
-    case 'proto': return 'protobuf';
-    default: return null;
+    case 'ts':
+    case 'tsx':
+    case 'mts':
+    case 'cts':
+      return 'typescript';
+    case 'js':
+    case 'jsx':
+    case 'mjs':
+    case 'cjs':
+      return 'javascript';
+    case 'py':
+      return 'python';
+    case 'rb':
+      return 'ruby';
+    case 'go':
+      return 'go';
+    case 'rs':
+      return 'rust';
+    case 'java':
+      return 'java';
+    case 'kt':
+    case 'kts':
+      return 'kotlin';
+    case 'cs':
+      return 'csharp';
+    case 'cpp':
+    case 'cc':
+    case 'cxx':
+    case 'c':
+    case 'h':
+    case 'hpp':
+      return 'cpp';
+    case 'sql':
+      return 'sql';
+    case 'yml':
+    case 'yaml':
+      return 'yaml';
+    case 'json':
+    case 'jsonc':
+      return 'json';
+    case 'toml':
+      return 'toml';
+    case 'md':
+    case 'mdx':
+      return 'markdown';
+    case 'css':
+    case 'scss':
+    case 'sass':
+    case 'less':
+      return 'css';
+    case 'html':
+    case 'htm':
+      return 'html';
+    case 'sh':
+    case 'bash':
+      return 'shell';
+    case 'dockerfile':
+      return 'dockerfile';
+    case 'tf':
+      return 'terraform';
+    case 'proto':
+      return 'protobuf';
+    default:
+      return null;
   }
 }

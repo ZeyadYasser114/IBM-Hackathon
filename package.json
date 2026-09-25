@@ -13,6 +13,9 @@
     "typecheck": "pnpm -r --filter \"./packages/*\" typecheck && pnpm -r --filter \"./apps/*\" typecheck",
     "lint": "pnpm -r --filter \"./packages/*\" lint && pnpm -r --filter \"./apps/*\" lint",
     "test": "pnpm -r --filter \"./packages/*\" test",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
     "clean": "pnpm -r --filter \"./packages/*\" --filter \"./apps/*\" clean"
   },
   "devDependencies": {

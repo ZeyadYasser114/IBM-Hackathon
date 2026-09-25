@@ -64,7 +64,10 @@ function makeChangedFile(overrides: Partial<ChangedFile> = {}): ChangedFile {
 describe('InMemoryAdapter', () => {
   it('resolveBranch returns the registered ref', async () => {
     const adapter = new InMemoryAdapter(
-      new Map([['main', BASE_REF], ['feature/auth', FEATURE_REF]]),
+      new Map([
+        ['main', BASE_REF],
+        ['feature/auth', FEATURE_REF],
+      ]),
       [],
     );
     const ref = await adapter.resolveBranch('main');
@@ -83,7 +86,10 @@ describe('InMemoryAdapter', () => {
       makeChangedFile({ path: 'src/billing/permissions.ts', branchName: 'feature/billing' }),
     ];
     const adapter = new InMemoryAdapter(
-      new Map([['main', BASE_REF], ['feature/auth', FEATURE_REF]]),
+      new Map([
+        ['main', BASE_REF],
+        ['feature/auth', FEATURE_REF],
+      ]),
       files,
     );
     const diffs = await adapter.getDiffs(BASE_REF, FEATURE_REF);
@@ -113,9 +119,9 @@ describe('PastedDiffAdapter', () => {
     const adapter = new PastedDiffAdapter(MODIFIED_TWO_FILES, 'feature/auth');
     const base = await adapter.resolveBranch('main');
     const base2 = await adapter.resolveBranch('main');
-    expect(base.sha).toBe(base2.sha);           // deterministic
-    expect(base.sha).toHaveLength(40);           // 40 hex chars
-    expect(base.sha).toMatch(/^[0-9a-f]+$/);    // lowercase hex
+    expect(base.sha).toBe(base2.sha); // deterministic
+    expect(base.sha).toHaveLength(40); // 40 hex chars
+    expect(base.sha).toMatch(/^[0-9a-f]+$/); // lowercase hex
   });
 
   it('handles an empty diff without throwing', () => {
@@ -157,12 +163,12 @@ describe('PastedDiffAdapter', () => {
 
 describe('createRepositoryContext — InMemoryAdapter', () => {
   function makeAdapter(extraFiles: ChangedFile[] = []) {
-    const files: ChangedFile[] = [
-      makeChangedFile({ branchName: 'feature/auth' }),
-      ...extraFiles,
-    ];
+    const files: ChangedFile[] = [makeChangedFile({ branchName: 'feature/auth' }), ...extraFiles];
     return new InMemoryAdapter(
-      new Map([['main', BASE_REF], ['feature/auth', FEATURE_REF]]),
+      new Map([
+        ['main', BASE_REF],
+        ['feature/auth', FEATURE_REF],
+      ]),
       files,
     );
   }
@@ -201,12 +207,9 @@ describe('createRepositoryContext — InMemoryAdapter', () => {
 
   it('deduplicates files with the same (branchName, path)', async () => {
     const duplicate = makeChangedFile({ branchName: 'feature/auth', additions: 5 });
-    const result = await createRepositoryContext(
-      makeAdapter([duplicate]),
-      REPO,
-      'main',
-      ['feature/auth'],
-    );
+    const result = await createRepositoryContext(makeAdapter([duplicate]), REPO, 'main', [
+      'feature/auth',
+    ]);
     // Should have deduplicated to 1 file (last write wins)
     expect(result.changedFiles).toHaveLength(1);
   });
@@ -224,9 +227,9 @@ describe('createRepositoryContext — InMemoryAdapter', () => {
   });
 
   it('throws when featureBranchNames is empty', async () => {
-    await expect(
-      createRepositoryContext(makeAdapter(), REPO, 'main', []),
-    ).rejects.toThrow(/at least one feature branch/);
+    await expect(createRepositoryContext(makeAdapter(), REPO, 'main', [])).rejects.toThrow(
+      /at least one feature branch/,
+    );
   });
 
   it('provider defaults to "local" when omitted', async () => {

@@ -155,13 +155,11 @@ const verifyRouter = router({
   /**
    * Poll for a verification result.
    */
-  result: procedure
-    .input(z.object({ verificationId: z.string() }))
-    .query(({ input }) => {
-      const result = resultStore.get(input.verificationId);
-      if (!result) return null;
-      return result;
-    }),
+  result: procedure.input(z.object({ verificationId: z.string() })).query(({ input }) => {
+    const result = resultStore.get(input.verificationId);
+    if (!result) return null;
+    return result;
+  }),
 });
 
 export const appRouter = router({

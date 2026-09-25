@@ -62,7 +62,8 @@ const CONFIDENCE_LEVEL_VALUES = {
   LOW: 'LOW',
 } as const;
 
-export type ConfidenceLevel = (typeof CONFIDENCE_LEVEL_VALUES)[keyof typeof CONFIDENCE_LEVEL_VALUES];
+export type ConfidenceLevel =
+  (typeof CONFIDENCE_LEVEL_VALUES)[keyof typeof CONFIDENCE_LEVEL_VALUES];
 export const ConfidenceLevel = CONFIDENCE_LEVEL_VALUES;
 
 // ---------------------------------------------------------------------------
@@ -80,7 +81,8 @@ const CONFLICT_SEVERITY_VALUES = {
   LOW: 'LOW',
 } as const;
 
-export type ConflictSeverity = (typeof CONFLICT_SEVERITY_VALUES)[keyof typeof CONFLICT_SEVERITY_VALUES];
+export type ConflictSeverity =
+  (typeof CONFLICT_SEVERITY_VALUES)[keyof typeof CONFLICT_SEVERITY_VALUES];
 export const ConflictSeverity = CONFLICT_SEVERITY_VALUES;
 
 // ---------------------------------------------------------------------------
@@ -127,7 +129,8 @@ const CONFLICT_CATEGORY_VALUES = {
   CONFIGURATION: 'CONFIGURATION',
 } as const;
 
-export type ConflictCategory = (typeof CONFLICT_CATEGORY_VALUES)[keyof typeof CONFLICT_CATEGORY_VALUES];
+export type ConflictCategory =
+  (typeof CONFLICT_CATEGORY_VALUES)[keyof typeof CONFLICT_CATEGORY_VALUES];
 export const ConflictCategory = CONFLICT_CATEGORY_VALUES;
 
 // ---------------------------------------------------------------------------

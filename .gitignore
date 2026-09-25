@@ -5,6 +5,7 @@ dist-examples/
 .turbo/
 *.tsbuildinfo
 coverage/
+.env
 .env.local
 .env.*.local
 

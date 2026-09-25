@@ -110,7 +110,13 @@ export class AnalysisPipeline {
    */
   static create(runners?: AgentRunner[]): AnalysisPipeline {
     return new AnalysisPipeline(
-      runners ?? [new IntentStub(), new ContractStub(), new DependencyStub(), new AdversaryStub(), new ChangeStub()],
+      runners ?? [
+        new IntentStub(),
+        new ContractStub(),
+        new DependencyStub(),
+        new AdversaryStub(),
+        new ChangeStub(),
+      ],
     );
   }
 

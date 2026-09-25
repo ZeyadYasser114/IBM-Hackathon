@@ -89,9 +89,7 @@ export function buildEvidenceForFile(file: ParsedFile, branchName: string): Code
   }
 
   // --- Normal file with hunks ---
-  return file.hunks.map((hunk, index) =>
-    buildEvidenceForHunk(hunk, file, branchName, index),
-  );
+  return file.hunks.map((hunk, index) => buildEvidenceForHunk(hunk, file, branchName, index));
 }
 
 /**
@@ -106,14 +104,10 @@ function buildEvidenceForHunk(
   // Line range in the head (feature) file
   const lineStart = hunk.headStart > 0 ? hunk.headStart : null;
   const lineEnd =
-    lineStart !== null && hunk.headCount > 0
-      ? lineStart + hunk.headCount - 1
-      : lineStart;
+    lineStart !== null && hunk.headCount > 0 ? lineStart + hunk.headCount - 1 : lineStart;
 
   // Snippet: up to MAX_SNIPPET_LINES changed lines (added or removed)
-  const changedLines = hunk.addedLines
-    .concat(hunk.removedLines)
-    .slice(0, MAX_SNIPPET_LINES);
+  const changedLines = hunk.addedLines.concat(hunk.removedLines).slice(0, MAX_SNIPPET_LINES);
   const snippet = changedLines.length > 0 ? changedLines.join('\n') : null;
 
   const metadata: Record<string, string> = {

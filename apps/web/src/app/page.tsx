@@ -20,8 +20,8 @@ export default function HomePage() {
           Merge<span style={{ color: 'var(--color-accent)' }}>Mind</span>
         </h1>
         <p style={{ color: 'var(--color-muted)', marginTop: '0.5rem' }}>
-          Semantic verification layer for parallel AI coding agents.
-          Git tells you whether code can merge. MergeMind tells you whether the ideas can coexist.
+          Semantic verification layer for parallel AI coding agents. Git tells you whether code can
+          merge. MergeMind tells you whether the ideas can coexist.
         </p>
       </header>
 

@@ -74,13 +74,7 @@ const VerificationStatusSchema = z.enum([
   'ERROR',
 ]);
 
-const AgentTypeSchema = z.enum([
-  'intent',
-  'contract',
-  'dependency',
-  'adversary',
-  'change',
-]);
+const AgentTypeSchema = z.enum(['intent', 'contract', 'dependency', 'adversary', 'change']);
 
 const ChangeKindSchema = z.enum(['ADDED', 'MODIFIED', 'DELETED', 'RENAMED']);
 
@@ -88,26 +82,28 @@ const ChangeKindSchema = z.enum(['ADDED', 'MODIFIED', 'DELETED', 'RENAMED']);
 // CodeEvidence
 // ---------------------------------------------------------------------------
 
-export const CodeEvidenceSchema = z.object({
-  source: EvidenceSourceSchema,
-  filePath: z.string().min(1, 'filePath must not be empty'),
-  lineStart: z.number().int().positive().nullable(),
-  lineEnd: z.number().int().positive().nullable(),
-  snippet: z.string().nullable(),
-  branchName: z.string().min(1, 'branchName must not be empty'),
-  metadata: z.record(z.string(), z.string()),
-}).refine(
-  (e) => {
-    // lineEnd must be >= lineStart when both are set
-    if (e.lineStart !== null && e.lineEnd !== null) {
-      return e.lineEnd >= e.lineStart;
-    }
-    // lineEnd must be null when lineStart is null
-    if (e.lineStart === null) return e.lineEnd === null;
-    return true;
-  },
-  { message: 'lineEnd must be >= lineStart, and both must be null or both non-null' },
-);
+export const CodeEvidenceSchema = z
+  .object({
+    source: EvidenceSourceSchema,
+    filePath: z.string().min(1, 'filePath must not be empty'),
+    lineStart: z.number().int().positive().nullable(),
+    lineEnd: z.number().int().positive().nullable(),
+    snippet: z.string().nullable(),
+    branchName: z.string().min(1, 'branchName must not be empty'),
+    metadata: z.record(z.string(), z.string()),
+  })
+  .refine(
+    (e) => {
+      // lineEnd must be >= lineStart when both are set
+      if (e.lineStart !== null && e.lineEnd !== null) {
+        return e.lineEnd >= e.lineStart;
+      }
+      // lineEnd must be null when lineStart is null
+      if (e.lineStart === null) return e.lineEnd === null;
+      return true;
+    },
+    { message: 'lineEnd must be >= lineStart, and both must be null or both non-null' },
+  );
 
 export type ValidatedCodeEvidence = z.infer<typeof CodeEvidenceSchema>;
 
@@ -154,9 +150,7 @@ export const RepositorySourceSchema = z.object({
   cloneUrl: z.string().min(1, 'cloneUrl must not be empty'),
   provider: z.string().min(1, 'provider must not be empty'),
   baseBranch: BranchRefSchema,
-  featureBranches: z
-    .array(BranchRefSchema)
-    .min(1, 'at least one feature branch is required'),
+  featureBranches: z.array(BranchRefSchema).min(1, 'at least one feature branch is required'),
   resolvedAt: ISODateStringSchema,
 });
 
@@ -166,19 +160,20 @@ export type ValidatedRepositorySource = z.infer<typeof RepositorySourceSchema>;
 // ChangedFile
 // ---------------------------------------------------------------------------
 
-export const ChangedFileSchema = z.object({
-  path: z.string().min(1, 'path must not be empty'),
-  kind: ChangeKindSchema,
-  previousPath: z.string().min(1).optional(),
-  patch: z.string().nullable(),
-  additions: z.number().int().nonnegative(),
-  deletions: z.number().int().nonnegative(),
-  branchName: z.string().min(1, 'branchName must not be empty'),
-  language: z.string().nullable(),
-}).refine(
-  (f) => f.kind !== 'RENAMED' || f.previousPath !== undefined,
-  { message: 'previousPath is required when kind is RENAMED' },
-);
+export const ChangedFileSchema = z
+  .object({
+    path: z.string().min(1, 'path must not be empty'),
+    kind: ChangeKindSchema,
+    previousPath: z.string().min(1).optional(),
+    patch: z.string().nullable(),
+    additions: z.number().int().nonnegative(),
+    deletions: z.number().int().nonnegative(),
+    branchName: z.string().min(1, 'branchName must not be empty'),
+    language: z.string().nullable(),
+  })
+  .refine((f) => f.kind !== 'RENAMED' || f.previousPath !== undefined, {
+    message: 'previousPath is required when kind is RENAMED',
+  });
 
 export type ValidatedChangedFile = z.infer<typeof ChangedFileSchema>;
 
@@ -241,25 +236,27 @@ export type ValidatedDependencyReference = z.infer<typeof DependencyReferenceSch
 // ConflictFinding
 // ---------------------------------------------------------------------------
 
-export const ConflictFindingSchema = z.object({
-  id: IdSchema,
-  title: z.string().min(1).max(160, 'title should be < 160 characters'),
-  description: z.string().min(1),
-  severity: ConflictSeveritySchema,
-  category: ConflictCategorySchema,
-  affectedAssumptionIds: z.array(IdSchema).min(1, 'at least one affected assumption is required'),
-  affectedFiles: z.array(z.string().min(1)),
-  conflictEvidence: z.array(CodeEvidenceSchema),
-  proposedResolution: z.string().nullable(),
-  resolvedAt: ISODateStringSchema.nullable(),
-}).refine(
-  (c) => {
-    // resolvedAt must be null when proposedResolution is null
-    if (c.proposedResolution === null) return c.resolvedAt === null;
-    return true;
-  },
-  { message: 'resolvedAt must be null when proposedResolution is null' },
-);
+export const ConflictFindingSchema = z
+  .object({
+    id: IdSchema,
+    title: z.string().min(1).max(160, 'title should be < 160 characters'),
+    description: z.string().min(1),
+    severity: ConflictSeveritySchema,
+    category: ConflictCategorySchema,
+    affectedAssumptionIds: z.array(IdSchema).min(1, 'at least one affected assumption is required'),
+    affectedFiles: z.array(z.string().min(1)),
+    conflictEvidence: z.array(CodeEvidenceSchema),
+    proposedResolution: z.string().nullable(),
+    resolvedAt: ISODateStringSchema.nullable(),
+  })
+  .refine(
+    (c) => {
+      // resolvedAt must be null when proposedResolution is null
+      if (c.proposedResolution === null) return c.resolvedAt === null;
+      return true;
+    },
+    { message: 'resolvedAt must be null when proposedResolution is null' },
+  );
 
 export type ValidatedConflictFinding = z.infer<typeof ConflictFindingSchema>;
 
@@ -267,49 +264,52 @@ export type ValidatedConflictFinding = z.infer<typeof ConflictFindingSchema>;
 // VerificationSummary / VerificationResult
 // ---------------------------------------------------------------------------
 
-export const VerificationSummarySchema = z.object({
-  assumptionsFound: z.number().int().nonnegative(),
-  conflictsFound: z.number().int().nonnegative(),
-  conflictsResolved: z.number().int().nonnegative(),
-  filesChanged: z.number().int().nonnegative(),
-  requirementCoverage: z.number().min(0).max(100).nullable(),
-  conflictsBySeverity: z.object({
-    CRITICAL: z.number().int().nonnegative(),
-    HIGH: z.number().int().nonnegative(),
-    MEDIUM: z.number().int().nonnegative(),
-    LOW: z.number().int().nonnegative(),
-  }),
-}).refine(
-  (s) => s.conflictsResolved <= s.conflictsFound,
-  { message: 'conflictsResolved cannot exceed conflictsFound' },
-);
+export const VerificationSummarySchema = z
+  .object({
+    assumptionsFound: z.number().int().nonnegative(),
+    conflictsFound: z.number().int().nonnegative(),
+    conflictsResolved: z.number().int().nonnegative(),
+    filesChanged: z.number().int().nonnegative(),
+    requirementCoverage: z.number().min(0).max(100).nullable(),
+    conflictsBySeverity: z.object({
+      CRITICAL: z.number().int().nonnegative(),
+      HIGH: z.number().int().nonnegative(),
+      MEDIUM: z.number().int().nonnegative(),
+      LOW: z.number().int().nonnegative(),
+    }),
+  })
+  .refine((s) => s.conflictsResolved <= s.conflictsFound, {
+    message: 'conflictsResolved cannot exceed conflictsFound',
+  });
 
-export const VerificationResultSchema = z.object({
-  id: IdSchema,
-  schemaVersion: SemVerSchema,
-  featureRequest: FeatureRequestSchema,
-  repositorySource: RepositorySourceSchema,
-  status: VerificationStatusSchema,
-  startedAt: ISODateStringSchema,
-  completedAt: ISODateStringSchema.nullable(),
-  assumptions: z.array(AssumptionSchema),
-  conflicts: z.array(ConflictFindingSchema),
-  summary: VerificationSummarySchema,
-  errorMessage: z.string().nullable(),
-}).refine(
-  (r) => {
-    // completedAt must be null for non-terminal statuses
-    const terminal = new Set(['PASS', 'FAIL', 'CANCELLED', 'ERROR'] as const);
-    if (!terminal.has(r.status as 'PASS' | 'FAIL' | 'CANCELLED' | 'ERROR')) {
-      return r.completedAt === null;
-    }
-    return true;
-  },
-  { message: 'completedAt must be null when status is PENDING or IN_PROGRESS' },
-).refine(
-  (r) => r.status !== 'ERROR' || r.errorMessage !== null,
-  { message: 'errorMessage must be set when status is ERROR' },
-);
+export const VerificationResultSchema = z
+  .object({
+    id: IdSchema,
+    schemaVersion: SemVerSchema,
+    featureRequest: FeatureRequestSchema,
+    repositorySource: RepositorySourceSchema,
+    status: VerificationStatusSchema,
+    startedAt: ISODateStringSchema,
+    completedAt: ISODateStringSchema.nullable(),
+    assumptions: z.array(AssumptionSchema),
+    conflicts: z.array(ConflictFindingSchema),
+    summary: VerificationSummarySchema,
+    errorMessage: z.string().nullable(),
+  })
+  .refine(
+    (r) => {
+      // completedAt must be null for non-terminal statuses
+      const terminal = new Set(['PASS', 'FAIL', 'CANCELLED', 'ERROR'] as const);
+      if (!terminal.has(r.status as 'PASS' | 'FAIL' | 'CANCELLED' | 'ERROR')) {
+        return r.completedAt === null;
+      }
+      return true;
+    },
+    { message: 'completedAt must be null when status is PENDING or IN_PROGRESS' },
+  )
+  .refine((r) => r.status !== 'ERROR' || r.errorMessage !== null, {
+    message: 'errorMessage must be set when status is ERROR',
+  });
 
 export type ValidatedVerificationResult = z.infer<typeof VerificationResultSchema>;
 
@@ -324,30 +324,32 @@ const RiskItemSchema = z.object({
   sourceConflictId: IdSchema.nullable(),
 });
 
-export const ChangePassportDraftSchema = z.object({
-  id: IdSchema,
-  schemaVersion: SemVerSchema,
-  verificationResultId: IdSchema,
-  title: z.string().min(1),
-  intentSummary: z.string().min(1),
-  changedFiles: z.array(z.string().min(1)),
-  remainingRisks: z.array(RiskItemSchema),
-  notableDecisions: z.array(z.string()),
-  verificationResult: VerificationResultSchema,
-  generatedAt: ISODateStringSchema,
-  approvedBy: z.string().nullable(),
-  approvedAt: ISODateStringSchema.nullable(),
-}).refine(
-  (p) => {
-    // If approved, both fields must be set
-    if (p.approvedBy !== null) return p.approvedAt !== null;
-    if (p.approvedAt !== null) return p.approvedBy !== null;
-    return true;
-  },
-  { message: 'approvedBy and approvedAt must both be set or both be null' },
-).refine(
-  (p) => p.verificationResult.id === p.verificationResultId,
-  { message: 'verificationResultId must match the embedded verificationResult.id' },
-);
+export const ChangePassportDraftSchema = z
+  .object({
+    id: IdSchema,
+    schemaVersion: SemVerSchema,
+    verificationResultId: IdSchema,
+    title: z.string().min(1),
+    intentSummary: z.string().min(1),
+    changedFiles: z.array(z.string().min(1)),
+    remainingRisks: z.array(RiskItemSchema),
+    notableDecisions: z.array(z.string()),
+    verificationResult: VerificationResultSchema,
+    generatedAt: ISODateStringSchema,
+    approvedBy: z.string().nullable(),
+    approvedAt: ISODateStringSchema.nullable(),
+  })
+  .refine(
+    (p) => {
+      // If approved, both fields must be set
+      if (p.approvedBy !== null) return p.approvedAt !== null;
+      if (p.approvedAt !== null) return p.approvedBy !== null;
+      return true;
+    },
+    { message: 'approvedBy and approvedAt must both be set or both be null' },
+  )
+  .refine((p) => p.verificationResult.id === p.verificationResultId, {
+    message: 'verificationResultId must match the embedded verificationResult.id',
+  });
 
 export type ValidatedChangePassportDraft = z.infer<typeof ChangePassportDraftSchema>;

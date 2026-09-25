@@ -6,7 +6,12 @@
  * evidence-builder.test.ts respectively.
  */
 
-import { parseDiff, PastedDiffAdapter, InMemoryAdapter, createRepositoryContext } from '../src/index.js';
+import {
+  parseDiff,
+  PastedDiffAdapter,
+  InMemoryAdapter,
+  createRepositoryContext,
+} from '../src/index.js';
 import type { BranchRef, ChangedFile } from '@mergemind/domain';
 
 const BRANCH = 'feature/billing';
@@ -102,7 +107,10 @@ describe('createRepositoryContext (public API)', () => {
 
   it('returns source + changedFiles + evidence', async () => {
     const adapter = new InMemoryAdapter(
-      new Map([['main', baseRef], ['feature/auth', featureRef]]),
+      new Map([
+        ['main', baseRef],
+        ['feature/auth', featureRef],
+      ]),
       [file],
     );
     const result = await createRepositoryContext(

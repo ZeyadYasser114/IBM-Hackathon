@@ -126,9 +126,7 @@ describe('@mergemind/fixtures — structural invariants', () => {
     });
 
     it('returns scenario-03-dependency-assumption', () => {
-      expect(getScenario('scenario-03-dependency-assumption')).toBe(
-        scenario03DependencyAssumption,
-      );
+      expect(getScenario('scenario-03-dependency-assumption')).toBe(scenario03DependencyAssumption);
     });
   });
 });

@@ -38,11 +38,7 @@ export {
   buildEvidenceFromChangedFiles,
   buildAllEvidence,
 } from './ingest.js';
-export type {
-  IngestAdapter,
-  RepositoryDescriptor,
-  RepositoryIngestResult,
-} from './ingest.js';
+export type { IngestAdapter, RepositoryDescriptor, RepositoryIngestResult } from './ingest.js';
 
 // ---------------------------------------------------------------------------
 // Adapters

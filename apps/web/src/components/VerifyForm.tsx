@@ -54,9 +54,14 @@ export function VerifyForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <form
+      onSubmit={handleSubmit}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+    >
       <section>
-        <label style={labelStyle} htmlFor="repo-name">Repository</label>
+        <label style={labelStyle} htmlFor="repo-name">
+          Repository
+        </label>
         <input
           id="repo-name"
           style={inputStyle}
@@ -68,7 +73,9 @@ export function VerifyForm() {
       </section>
 
       <section>
-        <label style={labelStyle} htmlFor="requirement">Feature requirement</label>
+        <label style={labelStyle} htmlFor="requirement">
+          Feature requirement
+        </label>
         <textarea
           id="requirement"
           style={{ ...inputStyle, minHeight: '120px', resize: 'vertical' }}
@@ -78,7 +85,8 @@ export function VerifyForm() {
           required
         />
         <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', marginTop: '0.4rem' }}>
-          Branches to verify: {DEMO_SCENARIO.repositorySource.featureBranches.map((b) => b.name).join(', ')}
+          Branches to verify:{' '}
+          {DEMO_SCENARIO.repositorySource.featureBranches.map((b) => b.name).join(', ')}
         </p>
       </section>
 
@@ -97,7 +105,8 @@ export function VerifyForm() {
             ID: <code>{verificationId}</code>
           </p>
           <p style={{ marginTop: '0.4rem', fontSize: '0.875rem' }}>
-            Poll <code>GET /api/trpc/verify.result?input={JSON.stringify({ verificationId })}</code> for results.
+            Poll <code>GET /api/trpc/verify.result?input={JSON.stringify({ verificationId })}</code>{' '}
+            for results.
           </p>
         </div>
       )}
