@@ -1,21 +1,30 @@
 import { AnalysisPipeline } from '../src/index.js';
-import type { FeatureRequirement, RepositoryContext } from '@mergemind/domain';
+import type { Assumption, FeatureRequest, RepositorySource } from '@mergemind/domain';
 
-const REQUIREMENT: FeatureRequirement = {
-  id: 'req-001',
+const REQUIREMENT: FeatureRequest = {
+  id: '123e4567-e89b-42d3-a456-426614174000',
+  title: 'Add organization billing',
   description: 'Add organization billing. Only organization owners can manage subscriptions.',
+  acceptanceCriteria: [
+    { key: 'AC-1', description: 'Only organization owners can manage subscriptions.' },
+  ],
   rules: [],
+  tags: ['billing'],
+  createdAt: '2024-08-01T12:00:00.000Z',
+  submittedBy: 'alice@example.com',
 };
 
-const CONTEXT: RepositoryContext = {
+const CONTEXT: RepositorySource = {
+  id: '223e4567-e89b-42d3-a456-426614174001',
   name: 'demo-repo',
-  location: '/tmp/demo',
-  baseBranch: { name: 'main', sha: 'abc0000000000000000000000000000000000000' },
+  cloneUrl: 'https://github.com/acme/demo-repo',
+  provider: 'github',
+  baseBranch: { name: 'main', sha: 'a'.repeat(40) },
   featureBranches: [
-    { name: 'feature/auth', sha: 'aaa1111111111111111111111111111111111111' },
-    { name: 'feature/billing', sha: 'bbb2222222222222222222222222222222222222' },
+    { name: 'feature/auth', sha: 'b'.repeat(40) },
+    { name: 'feature/billing', sha: 'c'.repeat(40) },
   ],
-  diffs: [],
+  resolvedAt: '2024-08-01T12:00:00.000Z',
 };
 
 describe('AnalysisPipeline', () => {
@@ -42,14 +51,19 @@ describe('AnalysisPipeline', () => {
   });
 
   it('accepts a custom runner', async () => {
-    const customAssumption = {
-      id: 'a-custom',
+    const customAssumption: Assumption = {
+      id: '323e4567-e89b-42d3-a456-426614174002',
       branchName: 'feature/auth',
       sourceFile: 'src/auth/roles.ts',
       statement: "The privileged organization role is 'owner'",
       concept: 'privileged-role',
       value: "'owner'",
-      sourceAgent: 'intent' as const,
+      sourceAgent: 'intent',
+      evidence: [],
+      confidence: 'LOW',
+      numericConfidence: 0.4,
+      relatedAssumptionIds: [],
+      extractedAt: '2024-08-01T12:00:00.000Z',
     };
 
     const customRunner = {

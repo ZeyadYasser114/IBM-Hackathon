@@ -21,6 +21,8 @@
  * Keep the `health` and `verify` namespaces stable — the UI depends on them.
  */
 
+import { randomUUID } from 'node:crypto';
+
 import { initTRPC } from '@trpc/server';
 import { z } from 'zod';
 
@@ -30,7 +32,9 @@ import { runVerification } from '@mergemind/verification';
 import type {
   AgentProgress,
   BranchRef,
-  FeatureRequirement,
+  ChangedFile,
+  FeatureRequest,
+  RepositorySource,
   VerificationResult,
 } from '@mergemind/domain';
 
@@ -49,13 +53,24 @@ const procedure = t.procedure;
 const resultStore = new Map<string, VerificationResult>();
 
 // ---------------------------------------------------------------------------
-// Input schemas
+// Input schemas (lenient at the boundary — the domain zod schemas in
+// `@mergemind/domain/schemas` enforce the strict contract on stored artifacts)
 // ---------------------------------------------------------------------------
 
-const FeatureRequirementSchema = z.object({
+const AcceptanceCriterionSchema = z.object({
+  key: z.string(),
+  description: z.string(),
+});
+
+const FeatureRequestSchema = z.object({
   id: z.string(),
+  title: z.string().min(1),
   description: z.string().min(1),
+  acceptanceCriteria: z.array(AcceptanceCriterionSchema),
   rules: z.array(z.string()),
+  tags: z.array(z.string()),
+  createdAt: z.string(),
+  submittedBy: z.string(),
 });
 
 const BranchRefSchema = z.object({
@@ -63,19 +78,25 @@ const BranchRefSchema = z.object({
   sha: z.string(),
 });
 
-const FileDiffSchema = z.object({
-  path: z.string(),
-  patch: z.string(),
-  additions: z.number(),
-  deletions: z.number(),
-});
-
-const RepositoryContextSchema = z.object({
+const RepositorySourceSchema = z.object({
+  id: z.string(),
   name: z.string(),
-  location: z.string(),
+  cloneUrl: z.string(),
+  provider: z.string(),
   baseBranch: BranchRefSchema,
   featureBranches: z.array(BranchRefSchema),
-  diffs: z.array(FileDiffSchema),
+  resolvedAt: z.string(),
+});
+
+const ChangedFileSchema = z.object({
+  path: z.string(),
+  kind: z.enum(['ADDED', 'MODIFIED', 'DELETED', 'RENAMED']),
+  previousPath: z.string().optional(),
+  patch: z.string().nullable(),
+  additions: z.number(),
+  deletions: z.number(),
+  branchName: z.string(),
+  language: z.string().nullable(),
 });
 
 // ---------------------------------------------------------------------------
@@ -98,8 +119,8 @@ const verifyRouter = router({
   /**
    * Start a verification run.
    *
-   * Accepts a pre-built RepositoryContext (the caller has already resolved
-   * branches and diffs) plus a FeatureRequirement.
+   * Accepts an already-resolved RepositorySource plus the ChangedFile list
+   * (the caller has already resolved branches and diffs) and a FeatureRequest.
    *
    * Returns immediately with a verificationId and PENDING status.
    * The actual run is async — poll `verify.result` for completion.
@@ -112,15 +133,21 @@ const verifyRouter = router({
   start: procedure
     .input(
       z.object({
-        requirement: FeatureRequirementSchema,
-        repository: RepositoryContextSchema,
+        featureRequest: FeatureRequestSchema,
+        repositorySource: RepositorySourceSchema,
+        changedFiles: z.array(ChangedFileSchema),
       }),
     )
     .mutation(async ({ input }) => {
-      const verificationId = `vr-${Date.now()}`;
+      const verificationId = randomUUID();
 
       // Kick off async — do not await
-      void runAnalysis(verificationId, input.requirement, input.repository);
+      void runAnalysis(
+        verificationId,
+        input.featureRequest,
+        input.repositorySource,
+        input.changedFiles.map(toDomainChangedFile),
+      );
 
       return { verificationId, status: 'PENDING' as const };
     }),
@@ -145,48 +172,72 @@ export const appRouter = router({
 export type AppRouter = typeof appRouter;
 
 // ---------------------------------------------------------------------------
+// Boundary normalization
+// ---------------------------------------------------------------------------
+
+type InputChangedFile = z.infer<typeof ChangedFileSchema>;
+
+/**
+ * Convert a caller-supplied diff record into a domain ChangedFile.
+ * Built explicitly (rather than by spread) so the optional `previousPath`
+ * stays compatible with `exactOptionalPropertyTypes`.
+ */
+function toDomainChangedFile(f: InputChangedFile): ChangedFile {
+  const base = {
+    path: f.path,
+    kind: f.kind,
+    patch: f.patch,
+    additions: f.additions,
+    deletions: f.deletions,
+    branchName: f.branchName,
+    language: f.language,
+  };
+  if (f.previousPath === undefined) return base;
+  return { ...base, previousPath: f.previousPath };
+}
+
+// ---------------------------------------------------------------------------
 // Async analysis runner
 // ---------------------------------------------------------------------------
 
 async function runAnalysis(
   verificationId: string,
-  requirement: FeatureRequirement,
-  repositoryInput: {
-    name: string;
-    location: string;
-    baseBranch: BranchRef;
-    featureBranches: BranchRef[];
-    diffs: { path: string; patch: string; additions: number; deletions: number }[];
-  },
+  featureRequest: FeatureRequest,
+  repositorySource: RepositorySource,
+  changedFiles: ChangedFile[],
 ): Promise<void> {
-  // Build an in-memory adapter from the supplied diffs
+  // Build an in-memory adapter from the supplied branches + diffs
   const branchMap = new Map<string, BranchRef>();
-  branchMap.set(repositoryInput.baseBranch.name, repositoryInput.baseBranch);
-  for (const fb of repositoryInput.featureBranches) {
+  branchMap.set(repositorySource.baseBranch.name, repositorySource.baseBranch);
+  for (const fb of repositorySource.featureBranches) {
     branchMap.set(fb.name, fb);
   }
-  const adapter = new InMemoryAdapter(branchMap, repositoryInput.diffs);
+  const adapter = new InMemoryAdapter(branchMap, changedFiles);
 
-  const context = await createRepositoryContext(
+  const { source, changedFiles: ingestedFiles } = await createRepositoryContext(
     adapter,
-    repositoryInput.name,
-    repositoryInput.location,
-    repositoryInput.baseBranch.name,
-    repositoryInput.featureBranches.map((fb) => fb.name),
+    {
+      name: repositorySource.name,
+      cloneUrl: repositorySource.cloneUrl,
+      provider: repositorySource.provider,
+    },
+    repositorySource.baseBranch.name,
+    repositorySource.featureBranches.map((fb) => fb.name),
   );
 
   const pipeline = AnalysisPipeline.create();
   const progressLog: AgentProgress[] = [];
 
-  const { assumptions } = await pipeline.run(requirement, context, (p) => {
+  const { assumptions } = await pipeline.run(featureRequest, source, (p) => {
     progressLog.push(p);
   });
 
+  const distinctFiles = new Set(ingestedFiles.map((f) => f.path));
+
   const result = runVerification({
-    requirementId: requirement.id,
-    requirement,
-    repositoryName: context.name,
-    filesChanged: context.diffs.length,
+    featureRequest,
+    repositorySource: source,
+    filesChanged: distinctFiles.size,
     assumptions,
   });
 

@@ -1,0 +1,174 @@
+{
+  "id": "a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5",
+  "schemaVersion": "1.0.0",
+  "featureRequest": {
+    "id": "b2c3d4e5-f6a7-4b8c-9d0e-f1a2b3c4d5e6",
+    "title": "Add organization billing",
+    "description": "Add organization billing. Only organization owners can manage subscriptions.",
+    "acceptanceCriteria": [
+      {
+        "key": "AC-1",
+        "description": "Only organization owners can manage subscriptions."
+      },
+      {
+        "key": "AC-2",
+        "description": "Organization billing respects the role system."
+      }
+    ],
+    "rules": [
+      "Only organization owners can manage subscriptions",
+      "Organization billing must respect the role system"
+    ],
+    "tags": ["billing", "permissions", "demo"],
+    "createdAt": "2024-08-01T12:00:00.000Z",
+    "submittedBy": "demo@example.com"
+  },
+  "repositorySource": {
+    "id": "c3d4e5f6-a7b8-4c9d-0e1f-a2b3c4d5e6f7",
+    "name": "acme-platform",
+    "cloneUrl": "https://github.com/acme/acme-platform",
+    "provider": "github",
+    "baseBranch": {
+      "name": "main",
+      "sha": "0000000000000000000000000000000000000000"
+    },
+    "featureBranches": [
+      {
+        "name": "feature/auth-roles-owner",
+        "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "name": "feature/billing-subscriptions",
+        "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ],
+    "resolvedAt": "2024-08-01T12:00:00.000Z"
+  },
+  "status": "FAIL",
+  "startedAt": "2024-08-01T12:00:00.000Z",
+  "completedAt": "2024-08-01T12:05:00.000Z",
+  "assumptions": [
+    {
+      "id": "d4e5f6a7-b8c9-4d0e-1f2a-b3c4d5e6f7a8",
+      "branchName": "feature/auth-roles-owner",
+      "sourceFile": "src/auth/roles.ts",
+      "statement": "The privileged organization role is 'owner'",
+      "concept": "privileged-role",
+      "value": "'owner'",
+      "sourceAgent": "intent",
+      "evidence": [
+        {
+          "source": "SOURCE_CODE",
+          "filePath": "src/auth/roles.ts",
+          "lineStart": 13,
+          "lineEnd": 13,
+          "snippet": "const PRIVILEGED_ROLE: Role = 'owner';",
+          "branchName": "feature/auth-roles-owner",
+          "metadata": {
+            "symbolKind": "VariableDeclaration",
+            "symbolName": "PRIVILEGED_ROLE"
+          }
+        }
+      ],
+      "confidence": "HIGH",
+      "numericConfidence": 0.95,
+      "relatedAssumptionIds": ["e5f6a7b8-c9d0-4e1f-2a3b-c4d5e6f7a8b9"],
+      "extractedAt": "2024-08-01T12:01:00.000Z"
+    },
+    {
+      "id": "e5f6a7b8-c9d0-4e1f-2a3b-c4d5e6f7a8b9",
+      "branchName": "feature/billing-subscriptions",
+      "sourceFile": "src/billing/permissions.ts",
+      "statement": "The privileged organization role is 'admin'",
+      "concept": "privileged-role",
+      "value": "'admin'",
+      "sourceAgent": "contract",
+      "evidence": [
+        {
+          "source": "SOURCE_CODE",
+          "filePath": "src/billing/permissions.ts",
+          "lineStart": 16,
+          "lineEnd": 16,
+          "snippet": "return user.role === 'admin';",
+          "branchName": "feature/billing-subscriptions",
+          "metadata": {
+            "symbolKind": "FunctionDeclaration",
+            "symbolName": "canManageSubscription"
+          }
+        }
+      ],
+      "confidence": "HIGH",
+      "numericConfidence": 0.92,
+      "relatedAssumptionIds": ["d4e5f6a7-b8c9-4d0e-1f2a-b3c4d5e6f7a8"],
+      "extractedAt": "2024-08-01T12:02:00.000Z"
+    },
+    {
+      "id": "f6a7b8c9-d0e1-4f2a-3b4c-d5e6f7a8b9c0",
+      "branchName": "feature/billing-subscriptions",
+      "sourceFile": "src/billing/permissions.ts",
+      "statement": "Only organization owners can manage subscriptions (enforced in canManageSubscription)",
+      "concept": "subscription-management-authorization",
+      "value": "canManageSubscription(user)",
+      "sourceAgent": "change",
+      "evidence": [
+        {
+          "source": "INFERRED",
+          "filePath": "src/billing/permissions.ts",
+          "lineStart": null,
+          "lineEnd": null,
+          "snippet": null,
+          "branchName": "feature/billing-subscriptions",
+          "metadata": {
+            "model": "bob-change-agent",
+            "promptVersion": "1.0"
+          }
+        }
+      ],
+      "confidence": "MEDIUM",
+      "numericConfidence": 0.75,
+      "relatedAssumptionIds": [],
+      "extractedAt": "2024-08-01T12:03:00.000Z"
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "a7b8c9d0-e1f2-4a3b-4c5d-e6f7a8b9c0d1",
+      "title": "Privileged role assumption mismatch",
+      "description": "feature/auth-roles-owner asserts the privileged organization role is 'owner' (src/auth/roles.ts), but feature/billing-subscriptions checks user.role === 'admin' (src/billing/permissions.ts). After merge, canManageSubscription will always return false for owners, so no organization owner can manage subscriptions.",
+      "severity": "HIGH",
+      "category": "BUSINESS_RULE",
+      "affectedAssumptionIds": [
+        "d4e5f6a7-b8c9-4d0e-1f2a-b3c4d5e6f7a8",
+        "e5f6a7b8-c9d0-4e1f-2a3b-c4d5e6f7a8b9"
+      ],
+      "affectedFiles": ["src/auth/roles.ts", "src/billing/permissions.ts"],
+      "conflictEvidence": [
+        {
+          "source": "SOURCE_CODE",
+          "filePath": "src/billing/permissions.ts",
+          "lineStart": 15,
+          "lineEnd": 17,
+          "snippet": "export function canManageSubscription(user: User): boolean {\n  return user.role === 'admin';\n}",
+          "branchName": "feature/billing-subscriptions",
+          "metadata": {}
+        }
+      ],
+      "proposedResolution": null,
+      "resolvedAt": null
+    }
+  ],
+  "summary": {
+    "assumptionsFound": 3,
+    "conflictsFound": 1,
+    "conflictsResolved": 0,
+    "filesChanged": 2,
+    "requirementCoverage": 50,
+    "conflictsBySeverity": {
+      "CRITICAL": 0,
+      "HIGH": 1,
+      "MEDIUM": 0,
+      "LOW": 0
+    }
+  },
+  "errorMessage": null
+}

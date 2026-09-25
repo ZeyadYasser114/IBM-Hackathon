@@ -46,4 +46,29 @@ index aaa0000..bbb1111 100644
   it('returns empty array for empty input', () => {
     expect(parseDiffOutput('', 'main')).toHaveLength(0);
   });
+
+  it('tags each record with branchName, kind, and language', () => {
+    const diffs = parseDiffOutput(RAW_DIFF, 'feature/billing');
+    for (const d of diffs) {
+      expect(d.branchName).toBe('feature/billing');
+      expect(d.kind).toBe('MODIFIED');
+      expect(d.language).toBe('typescript');
+      expect(d.patch).toContain('diff --git');
+    }
+  });
+
+  it('detects ADDED files from new-file markers', () => {
+    const raw = `diff --git a/src/new.ts b/src/new.ts
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/src/new.ts
+@@ -0,0 +1 @@
++export const x = 1;
+`;
+    const diffs = parseDiffOutput(raw, 'feature/x');
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0]?.kind).toBe('ADDED');
+    expect(diffs[0]?.additions).toBe(1);
+  });
 });

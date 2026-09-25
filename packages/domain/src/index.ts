@@ -1,227 +1,132 @@
 /**
  * @mergemind/domain
  *
- * All shared domain types for the MergeMind platform.
- * These types are the contracts between every layer (git-ingest, analysis,
- * verification, api, web). Change them carefully — every package depends on them.
+ * Single entry point for all shared domain contracts.
+ *
+ * Everything every package needs is exported from here:
+ *   import type { FeatureRequest, VerificationResult } from '@mergemind/domain';
+ *   import { ConflictSeverity, VerificationStatus } from '@mergemind/domain';
+ *
+ * Validation schemas live in a separate deep export to keep zod out of
+ * consumers that only need types:
+ *   import { VerificationResultSchema } from '@mergemind/domain/schemas';
+ *
+ * Change discipline: every field change here breaks every package.
+ * - Add optional fields freely.
+ * - Never remove or rename exported names without a major version bump.
+ * - Deprecate by JSDoc @deprecated before removal.
  */
 
 // ---------------------------------------------------------------------------
 // Primitives
 // ---------------------------------------------------------------------------
 
-/** ISO-8601 date-time string */
-export type ISODateString = string;
-
-/** Unique identifier (UUID v4) */
-export type Id = string;
+export type { Id, ISODateString, SemVer } from './primitives.js';
 
 // ---------------------------------------------------------------------------
-// Repository / Git Ingestion
+// Enums (runtime values + types)
+//
+// Each name is exported once: the single `export` carries both the runtime
+// value and the type meaning, so no separate `export type` block is needed
+// (a second export of the same name is a TS2300 duplicate identifier).
 // ---------------------------------------------------------------------------
 
-export type BranchRef = {
-  /** Short branch name, e.g. "feature/add-billing" */
-  name: string;
-  /** Full Git SHA (40 hex chars) */
-  sha: string;
-};
-
-export type FileDiff = {
-  /** Repo-relative path, e.g. "src/auth/roles.ts" */
-  path: string;
-  /** Raw unified diff text */
-  patch: string;
-  /** Lines added */
-  additions: number;
-  /** Lines removed */
-  deletions: number;
-};
-
-export type RepositoryContext = {
-  /** Human-readable name of the repository */
-  name: string;
-  /**
-   * Root path (local) or HTTPS URL (remote).
-   * Extension point: git-ingest resolves this to actual diffs.
-   */
-  location: string;
-  /** Base branch being merged into (typically "main") */
-  baseBranch: BranchRef;
-  /** Feature branches carrying the changes to be verified */
-  featureBranches: BranchRef[];
-  /** All file-level diffs across feature branches */
-  diffs: FileDiff[];
-};
+export {
+  EvidenceSource,
+  ConfidenceLevel,
+  ConflictSeverity,
+  ConflictCategory,
+  VerificationStatus,
+  AgentType,
+  AgentStatus,
+  ChangeKind,
+} from './enums.js';
 
 // ---------------------------------------------------------------------------
-// Requirement / Intent
+// Domain models
 // ---------------------------------------------------------------------------
 
-export type FeatureRequirement = {
-  id: Id;
-  /** Free-text description of what the developer asked for */
-  description: string;
-  /**
-   * Business rules extracted from the description.
-   * Extension point: Intent Agent populates this field.
-   */
-  rules: string[];
-};
+export type {
+  AcceptanceCriterion,
+  FeatureRequest,
+} from './models/feature-request.js';
+
+export type {
+  BranchRef,
+  RepositorySource,
+} from './models/repository-source.js';
+
+export type { ChangedFile } from './models/changed-file.js';
+
+export type { CodeEvidence } from './models/code-evidence.js';
+
+export type { Assumption } from './models/assumption.js';
+
+export type {
+  DependencyKind,
+  DependencyEndpoint,
+  DependencyReference,
+} from './models/dependency-reference.js';
+
+export type { ConflictFinding } from './models/conflict-finding.js';
+
+export type {
+  VerificationSummary,
+  VerificationResult,
+} from './models/verification-result.js';
+
+export type {
+  RiskItem,
+  ChangePassportDraft,
+} from './models/change-passport-draft.js';
 
 // ---------------------------------------------------------------------------
-// Assumptions
-// ---------------------------------------------------------------------------
-
-/**
- * A structured assumption extracted from a branch's changes.
- * Extension point: each analysis agent produces Assumption records.
- */
-export type Assumption = {
-  id: Id;
-  /** Which branch introduced this assumption */
-  branchName: string;
-  /** Repo-relative file path where the assumption originates */
-  sourceFile: string;
-  /**
-   * Human-readable statement of the assumption.
-   * Example: "The privileged organization role is 'owner'"
-   */
-  statement: string;
-  /**
-   * The shared concept this assumption is about.
-   * Used for grouping during conflict detection.
-   * Example: "privileged-role", "user-id-field-name"
-   */
-  concept: string;
-  /** Raw value or expression extracted from code. Example: "'owner'", "'admin'" */
-  value: string;
-  /** Which agent produced this assumption */
-  sourceAgent: AgentType;
-};
-
-// ---------------------------------------------------------------------------
-// Conflict Detection
-// ---------------------------------------------------------------------------
-
-export type ConflictSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
-
-export type ConflictClass =
-  | 'business-rule'  // Two agents interpret a requirement differently
-  | 'contract'       // One component changes something another depends on
-  | 'dependency';    // One change invalidates an assumption elsewhere
-
-/**
- * A semantic conflict between two or more assumptions.
- * Extension point: verification package populates this from Assumption arrays.
- */
-export type SemanticConflict = {
-  id: Id;
-  /** Short title for display */
-  title: string;
-  /** Full explanation of why these assumptions conflict */
-  description: string;
-  severity: ConflictSeverity;
-  conflictClass: ConflictClass;
-  /** The assumptions that are in conflict */
-  assumptionIds: Id[];
-  /** All source files involved */
-  affectedFiles: string[];
-  /**
-   * Bob-proposed fix text.
-   * Extension point: AI orchestration layer populates this.
-   */
-  proposedResolution: string | null;
-};
-
-// ---------------------------------------------------------------------------
-// Verification Result
-// ---------------------------------------------------------------------------
-
-export type VerificationStatus = 'PASS' | 'FAIL' | 'PENDING' | 'IN_PROGRESS';
-
-/**
- * The top-level output of a MergeMind verification run.
- * Extension point: api layer assembles this from all sub-results.
- */
-export type VerificationResult = {
-  id: Id;
-  requirementId: Id;
-  repositoryName: string;
-  status: VerificationStatus;
-  startedAt: ISODateString;
-  completedAt: ISODateString | null;
-  assumptions: Assumption[];
-  conflicts: SemanticConflict[];
-  /** Summary counts — derived fields for fast display */
-  summary: VerificationSummary;
-};
-
-export type VerificationSummary = {
-  assumptionsFound: number;
-  conflictsFound: number;
-  conflictsResolved: number;
-  filesChanged: number;
-  /** Overall requirement coverage percentage 0–100 */
-  requirementCoverage: number;
-};
-
-// ---------------------------------------------------------------------------
-// Change Passport
+// Legacy exports — kept for backward compatibility with packages written
+// against the original index.ts.  Do not use these in new code.
 // ---------------------------------------------------------------------------
 
 /**
- * Permanent, machine-readable record of what was verified.
- * Extension point: Change Passport branch generates this from VerificationResult.
+ * @deprecated Use `FeatureRequest` instead.
+ * `FeatureRequirement` is retained so existing packages compile without change.
  */
-export type ChangePassport = {
-  id: Id;
-  verificationId: Id;
-  feature: string;
-  intent: string;
-  generatedAt: ISODateString;
-  result: VerificationResult;
-  /** Risk items that remain unresolved after verification */
-  remainingRisks: string[];
-};
-
-// ---------------------------------------------------------------------------
-// Agent types
-// ---------------------------------------------------------------------------
+export type {
+  FeatureRequest as FeatureRequirement,
+} from './models/feature-request.js';
 
 /**
- * The specialized Bob subagents in the analysis pipeline.
- * Extension point: analysis package maps each AgentType to a Bob task.
+ * @deprecated Use `RepositorySource` instead.
+ * `RepositoryContext` is retained so existing packages compile without change.
+ * The legacy shape is narrower — consider migrating to `RepositorySource`.
  */
-export type AgentType = 'intent' | 'contract' | 'dependency' | 'adversary' | 'change';
+export type {
+  RepositorySource as RepositoryContext,
+} from './models/repository-source.js';
 
-export type AgentStatus = 'idle' | 'running' | 'complete' | 'failed';
+/**
+ * @deprecated Use `ChangedFile` instead.
+ * `FileDiff` is retained so existing packages compile without change.
+ */
+export type {
+  ChangedFile as FileDiff,
+} from './models/changed-file.js';
 
-export type AgentProgress = {
-  agentType: AgentType;
-  status: AgentStatus;
-  startedAt: ISODateString | null;
-  completedAt: ISODateString | null;
-  /** Brief status message shown in the UI progress panel */
-  message: string;
-};
+/**
+ * @deprecated Use `ConflictFinding` instead.
+ * `SemanticConflict` is retained so existing packages compile without change.
+ */
+export type {
+  ConflictFinding as SemanticConflict,
+} from './models/conflict-finding.js';
 
-// ---------------------------------------------------------------------------
-// API request / response shapes
-// ---------------------------------------------------------------------------
+/**
+ * @deprecated Use `VerificationResult` from models.
+ * Re-exported at the top level for compatibility.
+ */
+export type {
+  VerificationResult as VerificationResultLegacy,
+} from './models/verification-result.js';
 
-export type VerifyRequest = {
-  requirement: FeatureRequirement;
-  repository: RepositoryContext;
-};
-
-export type VerifyResponse = {
-  verificationId: Id;
-  status: VerificationStatus;
-};
-
-export type HealthResponse = {
-  status: 'ok';
-  version: string;
-  timestamp: ISODateString;
-};
+// Agent progress — used by existing analysis package
+export type {
+  AgentProgress,
+} from './models/agent-progress.js';

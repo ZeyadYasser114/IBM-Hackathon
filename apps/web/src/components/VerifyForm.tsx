@@ -18,8 +18,8 @@ import { DEMO_SCENARIO } from '@/fixtures/demo-scenario';
 type FormState = 'idle' | 'submitting' | 'done' | 'error';
 
 export function VerifyForm() {
-  const [requirementText, setRequirementText] = useState(DEMO_SCENARIO.requirement.description);
-  const [repoName, setRepoName] = useState(DEMO_SCENARIO.repository.name);
+  const [requirementText, setRequirementText] = useState(DEMO_SCENARIO.featureRequest.description);
+  const [repoName, setRepoName] = useState(DEMO_SCENARIO.repositorySource.name);
   const [formState, setFormState] = useState<FormState>('idle');
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,14 +41,15 @@ export function VerifyForm() {
     setErrorMessage(null);
 
     startVerification.mutate({
-      requirement: {
-        ...DEMO_SCENARIO.requirement,
+      featureRequest: {
+        ...DEMO_SCENARIO.featureRequest,
         description: requirementText,
       },
-      repository: {
-        ...DEMO_SCENARIO.repository,
+      repositorySource: {
+        ...DEMO_SCENARIO.repositorySource,
         name: repoName,
       },
+      changedFiles: DEMO_SCENARIO.changedFiles,
     });
   }
 
@@ -77,7 +78,7 @@ export function VerifyForm() {
           required
         />
         <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem', marginTop: '0.4rem' }}>
-          Branches to verify: {DEMO_SCENARIO.repository.featureBranches.map((b) => b.name).join(', ')}
+          Branches to verify: {DEMO_SCENARIO.repositorySource.featureBranches.map((b) => b.name).join(', ')}
         </p>
       </section>
 
