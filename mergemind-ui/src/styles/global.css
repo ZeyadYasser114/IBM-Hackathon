@@ -326,3 +326,41 @@ hr {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Print styles ─────────────────────────────────────────────────────────── */
+
+@media print {
+  :root {
+    --bg:        #ffffff;
+    --surface:   #ffffff;
+    --surface-2: #f8f8f8;
+    --border:    #dddddd;
+    --border-2:  #eeeeee;
+    --text:      #111111;
+    --text-muted:#444444;
+    --text-dim:  #666666;
+  }
+
+  body { background: #fff; color: #111; font-size: 12px; }
+
+  /* Hide chrome that shouldn't print */
+  .print-hide { display: none !important; }
+
+  /* Remove shadows, borders that look odd on paper */
+  .card, .card-sm { box-shadow: none !important; border-color: #ccc !important; }
+
+  /* Make passport card fill the page */
+  .passport-card { border: 1px solid #ccc; border-radius: 4px; }
+
+  /* Force page break before passport */
+  .passport-card { page-break-inside: avoid; }
+
+  /* Ensure code blocks render */
+  pre { white-space: pre-wrap !important; font-size: 10px; }
+
+  /* Remove animations */
+  * { animation: none !important; transition: none !important; }
+
+  /* Force dark text on colored backgrounds */
+  .badge { color: #111 !important; background: #f0f0f0 !important; border-color: #ccc !important; }
+}

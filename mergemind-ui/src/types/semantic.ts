@@ -114,21 +114,52 @@ export interface VerifyChangeInput {
 // ── Change Passport ───────────────────────────────────────────────────────────
 
 export interface ChangePassport {
+  /** Unique passport identifier */
   id: string;
-  generatedAt: string; // ISO-8601
+  /** ISO-8601 timestamp when this passport was generated */
+  generatedAt: string;
+  /** Optional session/run identifier that produced this passport */
+  sessionId?: string;
+
+  // ── Identity ──────────────────────────────────────────────────────────────
   feature: string;
+  /** Original developer intent / requirement statement */
   intent: string;
-  filesChanged: number;
+  /** Repository slug (e.g. "org/repo") — optional, may not be available */
+  repository?: string;
+  /** Branch names analyzed — optional */
+  branches?: string[];
+
+  // ── Scope ─────────────────────────────────────────────────────────────────
+  /** Number of files changed. null = not measured. */
+  filesChanged: number | null;
   components: string[];
-  assumptionsFound: number;
-  assumptionsVerified: number;
-  conflictsFound: number;
-  conflictsResolved: number;
-  testsTotal: number;
-  testsPassing: number;
-  requirementCoverage: number; // 0-100
-  remainingRisk: string;
+
+  // ── Semantic analysis ─────────────────────────────────────────────────────
+  /** Total assumptions extracted. null = not measured. */
+  assumptionsFound: number | null;
+  /** Assumptions that were verified. null = not measured. */
+  assumptionsVerified: number | null;
+  /** Total semantic conflicts detected. null = not measured. */
+  conflictsFound: number | null;
+  /** Conflicts that have been resolved. null = not measured. */
+  conflictsResolved: number | null;
+
+  // ── Test results ──────────────────────────────────────────────────────────
+  /** Total tests in suite. null = not measured. */
+  testsTotal: number | null;
+  /** Tests currently passing. null = not measured. */
+  testsPassing: number | null;
+
+  // ── Coverage & risk ───────────────────────────────────────────────────────
+  /** Requirement coverage 0–100. null = not measured. */
+  requirementCoverage: number | null;
+  /** Remaining unverified risk. null = none identified. */
+  remainingRisk: string | null;
+
+  // ── Overall verdict ───────────────────────────────────────────────────────
   status: VerificationStatus;
+  /** The conflicts included in this passport (may be empty) */
   conflicts: Conflict[];
 }
 

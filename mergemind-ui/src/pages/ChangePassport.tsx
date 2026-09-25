@@ -1,234 +1,226 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { DEMO_PASSPORT, DEMO_PASSPORT_RESOLVED } from '@/data/demoFixtures';
-import { StatusBadge, SeverityBadge } from '@/components/StatusBadge';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { PassportCard } from '@/components/PassportCard';
+import {
+  PASSPORT_VARIANTS,
+  serializePassport,
+  type PassportVariant,
+} from '@/data/passportFixtures';
 import type { ChangePassport } from '@/types/semantic';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ChangePassport page
+//
+// Shows the selected passport variant (PASS / FAIL / PARTIAL) through the
+// reusable PassportCard component. Provides real JSON download export.
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function ChangePassportPage() {
   const navigate = useNavigate();
-  // Show resolved passport if navigated from ConflictDetail with resolved flag,
-  // otherwise show unresolved state for the default demo path.
-  // In real usage, this would be driven by session state.
-  const [showResolved, setShowResolved] = useState(false);
-  const passport = showResolved ? DEMO_PASSPORT_RESOLVED : DEMO_PASSPORT;
+  const location = useLocation();
+
+  // If navigated from ConflictDetail with resolved=true, default to PASS
+  const fromResolved = (location.state as { resolved?: boolean } | null)?.resolved === true;
+  const [variantIdx, setVariantIdx] = useState(fromResolved ? 0 : 1);
+
+  const variant  = PASSPORT_VARIANTS[variantIdx]!;
+  const passport = variant.passport;
+
+  // ── JSON export ──────────────────────────────────────────────────────────
+  const handleExport = () => {
+    const json     = serializePassport(passport);
+    const blob     = new Blob([json], { type: 'application/json' });
+    const url      = URL.createObjectURL(blob);
+    const a        = document.createElement('a');
+    a.href         = url;
+    a.download     = `mergemind-passport-${passport.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Print ─────────────────────────────────────────────────────────────────
+  const handlePrint = () => window.print();
+
+  // ── Navigate to conflict detail ───────────────────────────────────────────
+  const handleInspectConflict = (conflictId: string) => {
+    navigate('/detail', { state: { conflictId, scenarioIdx: 0 } });
+  };
 
   return (
-    <div className="fade-in" style={{ maxWidth: 800, margin: '0 auto' }}>
-      {/* ── Header ── */}
-      <div className="row gap-4" style={{ marginBottom: 'var(--sp-6)', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div className="row gap-3" style={{ marginBottom: 'var(--sp-2)' }}>
-            <h2>Change Passport</h2>
-            <StatusBadge status={passport.status} />
-          </div>
+    <div className="fade-in no-print-chrome" style={{ maxWidth: 900, margin: '0 auto' }}>
+
+      {/* ══════════════════════════════════════════════════════════════
+          PAGE HEADER (hidden in print)
+      ══════════════════════════════════════════════════════════════ */}
+      <div className="print-hide" style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 'var(--sp-6)',
+        marginBottom: 'var(--sp-5)',
+        flexWrap: 'wrap',
+      }}>
+        <div>
+          <h2 style={{ marginBottom: 4 }}>Change Passport</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Permanent verification record. Future developers and AI agents can read this to understand
-            what changed, why, and what must remain true.
+            Permanent verification artifact. Serialisable so future developers and AI agents
+            can read what changed, why, and what must remain true.
           </p>
         </div>
-        <div style={{ flexShrink: 0 }}>
-          <button
-            className={`btn ${showResolved ? 'btn-secondary' : 'btn-primary'}`}
-            onClick={() => setShowResolved((v) => !v)}
-            style={{ fontSize: 12 }}
-          >
-            {showResolved ? 'Show unresolved state' : '→ Apply fix & regenerate'}
+        <div className="row gap-2">
+          <button className="btn btn-ghost" onClick={handlePrint} style={{ fontSize: 12 }}>
+            🖨 Print
+          </button>
+          <button className="btn btn-secondary" onClick={handleExport} style={{ fontSize: 12 }}>
+            ↓ Export JSON
+          </button>
+          <button className="btn btn-ghost" onClick={() => navigate('/')} style={{ fontSize: 12 }}>
+            New analysis
           </button>
         </div>
       </div>
 
-      {/* ── Passport header card ── */}
-      <div
-        className="card"
-        style={{
-          marginBottom: 'var(--sp-6)',
-          borderColor: passport.status === 'PASS' ? 'var(--low-border)' : 'var(--high-border)',
-          background: passport.status === 'PASS' ? 'var(--low-bg)' : 'var(--high-bg)',
-        }}
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-4)' }}>
-          <div>
-            <FieldRow label="Feature" value={passport.feature} />
-            <FieldRow label="Intent" value={passport.intent} />
-            <FieldRow label="Generated" value={formatDate(passport.generatedAt)} />
-            <FieldRow label="Passport ID" value={passport.id} mono />
-          </div>
-          <div>
-            <FieldRow label="Components" value={passport.components.join(', ')} />
-            <FieldRow label="Files changed" value={String(passport.filesChanged)} />
-            <FieldRow
-              label="Verification"
-              value={passport.status}
-              valueColor={passport.status === 'PASS' ? 'var(--pass)' : 'var(--high)'}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Metrics grid ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 'var(--sp-4)',
-        marginBottom: 'var(--sp-6)',
-      }}>
-        <MetricCard
-          value={`${passport.assumptionsVerified}/${passport.assumptionsFound}`}
-          label="Assumptions verified"
-          ok={passport.assumptionsVerified === passport.assumptionsFound}
-        />
-        <MetricCard
-          value={`${passport.conflictsResolved}/${passport.conflictsFound}`}
-          label="Conflicts resolved"
-          ok={passport.conflictsResolved === passport.conflictsFound}
-        />
-        <MetricCard
-          value={`${passport.testsPassing}/${passport.testsTotal}`}
-          label="Tests passing"
-          ok={passport.testsPassing === passport.testsTotal}
-        />
-        <MetricCard
-          value={`${passport.requirementCoverage}%`}
-          label="Requirement coverage"
-          ok={passport.requirementCoverage >= 90}
-        />
-      </div>
-
-      {/* ── Remaining risk ── */}
-      <section style={{ marginBottom: 'var(--sp-6)' }}>
-        <div className="row gap-2" style={{ marginBottom: 'var(--sp-3)' }}>
-          <h3 style={{ fontSize: 14 }}>Remaining Risk</h3>
-        </div>
-        <div className="card-sm" style={{
-          borderColor: passport.status === 'FAIL' ? 'var(--high-border)' : 'var(--medium-border)',
-          background:  passport.status === 'FAIL' ? 'var(--high-bg)'    : 'var(--medium-bg)',
-          fontSize: 13,
-          lineHeight: 1.6,
-          color: 'var(--text)',
+      {/* ══════════════════════════════════════════════════════════════
+          VARIANT SELECTOR (hidden in print)
+      ══════════════════════════════════════════════════════════════ */}
+      <div className="print-hide" style={{ marginBottom: 'var(--sp-5)' }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: '0.08em', color: 'var(--text-muted)',
+          marginBottom: 'var(--sp-2)',
         }}>
-          {passport.status === 'FAIL' ? '⚠️ ' : 'ℹ️ '}
-          {passport.remainingRisk}
+          Demo variant
         </div>
-      </section>
-
-      {/* ── Conflicts section ── */}
-      <section style={{ marginBottom: 'var(--sp-6)' }}>
-        <h3 style={{ fontSize: 14, marginBottom: 'var(--sp-4)' }}>Semantic Conflicts</h3>
-        <div className="stack gap-3">
-          {passport.conflicts.map((c) => (
-            <div
-              key={c.id}
-              className="card-sm"
-              style={{
-                borderColor: c.resolved ? 'var(--low-border)' : 'var(--high-border)',
-                background:  c.resolved ? 'var(--low-bg)'    : 'var(--high-bg)',
-              }}
-            >
-              <div className="row gap-3" style={{ marginBottom: 'var(--sp-2)' }}>
-                <SeverityBadge severity={c.severity} />
-                <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--mono)' }}>
-                  {c.kind.replace('_', ' ')}
-                </span>
-                <span style={{ marginLeft: 'auto', fontSize: 12 }}>
-                  {c.resolved
-                    ? <span style={{ color: 'var(--pass)' }}>✓ Resolved</span>
-                    : <span style={{ color: 'var(--high)', cursor: 'pointer' }}
-                        onClick={() => navigate('/detail')}>
-                        ✗ Unresolved — inspect →
-                      </span>
-                  }
-                </span>
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{c.title}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {c.affectedFiles.map((f) => <span key={f} className="tag" style={{ marginRight: 4 }}>{f}</span>)}
-              </div>
-            </div>
+        <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
+          {PASSPORT_VARIANTS.map((v, idx) => (
+            <VariantTab
+              key={v.id}
+              variant={v}
+              isActive={idx === variantIdx}
+              onClick={() => setVariantIdx(idx)}
+            />
           ))}
         </div>
-      </section>
-
-      {/* ── Machine-readable block ── */}
-      <section style={{ marginBottom: 'var(--sp-6)' }}>
-        <h3 style={{ fontSize: 14, marginBottom: 'var(--sp-3)' }}>Machine-readable Record</h3>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 'var(--sp-3)' }}>
-          Future AI agents can read this passport to understand what must remain true.
-        </p>
-        <PassportCodeBlock passport={passport} />
-      </section>
-
-      {/* ── Footer actions ── */}
-      <div className="row gap-3" style={{ justifyContent: 'flex-end' }}>
-        <button className="btn btn-ghost" onClick={() => navigate('/')}>Start new analysis</button>
-        <button className="btn btn-secondary" onClick={() => alert('Export: in production this creates a signed JSON artifact.')}>
-          Export Passport
-        </button>
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════
+          PASSPORT CARD
+      ══════════════════════════════════════════════════════════════ */}
+      <PassportCard
+        passport={passport}
+        onInspectConflict={handleInspectConflict}
+      />
+
+      {/* ══════════════════════════════════════════════════════════════
+          JSON PREVIEW (print-hide, collapsible)
+      ══════════════════════════════════════════════════════════════ */}
+      <JsonPreview passport={passport} onExport={handleExport} />
+
     </div>
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
 
-function FieldRow({ label, value, mono, valueColor }: {
-  label: string; value: string; mono?: boolean; valueColor?: string;
+function VariantTab({
+  variant, isActive, onClick,
+}: {
+  variant: PassportVariant;
+  isActive: boolean;
+  onClick: () => void;
 }) {
+  const p = variant.passport;
+  const statusColor =
+    p.status === 'PASS'    ? 'var(--pass)'       :
+    p.status === 'FAIL'    ? 'var(--high)'        :
+                             'var(--text-muted)';
+  const borderColor =
+    isActive && p.status === 'PASS'    ? 'var(--low-border)'    :
+    isActive && p.status === 'FAIL'    ? 'var(--high-border)'   :
+    isActive                           ? 'var(--border)'        :
+                                         'var(--border-2)';
+
   return (
-    <div className="row gap-2" style={{ marginBottom: 6, fontSize: 13, alignItems: 'flex-start' }}>
-      <span style={{ color: 'var(--text-dim)', width: 110, flexShrink: 0 }}>{label}</span>
-      <span className={mono ? 'mono' : ''} style={{ color: valueColor ?? 'var(--text)', lineHeight: 1.4 }}>
-        {value}
+    <button
+      onClick={onClick}
+      style={{
+        display:        'flex',
+        flexDirection:  'column',
+        gap:            3,
+        padding:        '9px 16px',
+        background:     isActive ? 'var(--surface-2)' : 'var(--surface)',
+        border:         `1px solid ${borderColor}`,
+        borderRadius:   'var(--radius)',
+        cursor:         'pointer',
+        textAlign:      'left',
+        transition:     'border-color 0.15s',
+        minWidth:       150,
+      }}
+    >
+      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+        {variant.label}
       </span>
-    </div>
-  );
-}
-
-function MetricCard({ value, label, ok }: { value: string; label: string; ok: boolean }) {
-  return (
-    <div className="card-sm stack gap-1" style={{ textAlign: 'center', padding: 'var(--sp-4) var(--sp-3)' }}>
-      <div style={{
-        fontSize: 26,
-        fontWeight: 700,
-        color: ok ? 'var(--pass)' : 'var(--high)',
-        lineHeight: 1.2,
+      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+        {variant.sublabel}
+      </span>
+      <span style={{
+        fontSize: 9, fontWeight: 700, color: statusColor,
+        textTransform: 'uppercase', letterSpacing: '0.08em',
       }}>
-        {value}
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.3 }}>{label}</div>
-    </div>
+        {p.status}
+      </span>
+    </button>
   );
 }
 
-function PassportCodeBlock({ passport }: { passport: ChangePassport }) {
-  const lines = [
-    `MERGEMIND CHANGE PASSPORT`,
-    ``,
-    `Feature:              ${passport.feature}`,
-    `Intent:               ${passport.intent}`,
-    `Files Changed:        ${passport.filesChanged}`,
-    `Components:           ${passport.components.join(', ')}`,
-    `Assumptions Found:    ${passport.assumptionsFound}`,
-    `Verified:             ${passport.assumptionsVerified}`,
-    `Conflicts Found:      ${passport.conflictsFound}`,
-    `Resolved:             ${passport.conflictsResolved}`,
-    `Tests:                ${passport.testsPassing} / ${passport.testsTotal}`,
-    `Requirement Coverage: ${passport.requirementCoverage}%`,
-    `Remaining Risk:       ${passport.remainingRisk}`,
-    `Verification Status:  ${passport.status}`,
-    `Passport ID:          ${passport.id}`,
-    `Generated:            ${passport.generatedAt}`,
-  ];
+function JsonPreview({
+  passport, onExport,
+}: {
+  passport: ChangePassport;
+  onExport: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const json = serializePassport(passport);
 
   return (
-    <pre className="code-block" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-      {lines.join('\n')}
-    </pre>
-  );
-}
+    <div className="print-hide" style={{ marginTop: 'var(--sp-6)' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="btn btn-ghost"
+        style={{ fontSize: 12, width: '100%', justifyContent: 'space-between' }}
+      >
+        <span>{ open ? '▾' : '▸' } Serialized JSON ({json.length.toLocaleString()} chars)</span>
+        <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+          schema: mergemind/change-passport/v1
+        </span>
+      </button>
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
+      {open && (
+        <div className="fade-in" style={{ marginTop: 'var(--sp-2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--sp-2)' }}>
+            <button className="btn btn-secondary" onClick={onExport} style={{ fontSize: 11 }}>
+              ↓ Download .json
+            </button>
+          </div>
+          <pre style={{
+            background:   'var(--surface-2)',
+            border:       '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            padding:      'var(--sp-4)',
+            fontSize:     11.5,
+            fontFamily:   'var(--mono)',
+            color:        'var(--text)',
+            lineHeight:   1.6,
+            overflowX:    'auto',
+            maxHeight:    400,
+            whiteSpace:   'pre',
+          }}>
+            {json}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
 }
