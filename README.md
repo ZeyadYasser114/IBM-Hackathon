@@ -521,3 +521,64 @@ And our central question is:
 > When five AI agents write your software, who checks that they still agree with each other?
 
 **MergeMind does.**
+
+---
+
+## Team Integration Contract
+
+This branch is the stable foundation. Teammates branch from here and merge back
+without breaking each other. Rules below are binding until the demo ships.
+
+### Quick start (teammate clone → running)
+
+```bash
+pnpm install        # requires Node >= 18, pnpm >= 11
+pnpm check          # build + typecheck + lint + format:check + test — must be green
+pnpm dev            # Next.js app on http://localhost:3000 (see .env.example)
+```
+
+Health probes: `GET /health` and tRPC `health.check`.
+
+### Where new modules live
+
+| Work | Location | Notes |
+|---|---|---|
+| Real conflict detectors | `packages/verification/src/` — implement `ConflictDetector`, inject into `runVerification()` | `StubConflictDetector` stays as the fallback |
+| Bob subagent runners | `packages/analysis/src/` — implement `AgentRunner` per agent, register in `AnalysisPipeline.create()` | Stubs stay until your branch lands |
+| New repo sources | `packages/git-ingest/src/adapters/` — implement `IngestAdapter` (+ `GitRunner` for shell) | Keep shell behind `GitRunner` so tests stay mockable |
+| Conflict graph UI | `apps/web/src/` new screens/components | `VerifyForm` + `page.tsx` (Screen 1) are the composition root |
+| Resolution workflow | New tRPC sub-router in `packages/api/src/index.ts` (see `EXTENSION POINT` comment) | Keep `health` + `verify` namespaces stable |
+| Passport generation | New service/branch — only the `ChangePassportDraft` **type** exists so far | Do not invent a second passport shape |
+| Test data | `packages/fixtures/` (`getScenario()`, `allScenarios`) for detector/passport tests; `@mergemind/domain/testing` factories and `@mergemind/git-ingest/testing` builders for unit tests | Raw snapshots live in `fixtures/` (demo repo) and `apps/web/src/fixtures/` (UI seed) — do not fork new copies without need |
+
+### Shared types to reuse (do not duplicate)
+
+`FeatureRequest`, `RepositorySource`, `ChangedFile`, `CodeEvidence`, `Assumption`,
+`ConflictFinding`, `VerificationResult`, `ChangePassportDraft` — all from
+`@mergemind/domain`, validated at runtime by `@mergemind/domain/schemas`.
+Deprecated aliases (`FeatureRequirement`, `RepositoryContext`, `FileDiff`,
+`SemanticConflict`) exist for backward compatibility only — new code must use
+the canonical names.
+
+### Stable interfaces (avoid changing unless necessary)
+
+- `packages/domain` types + zod schemas (every package breaks on field changes)
+- `IngestAdapter`, `AgentRunner`, `ConflictDetector` contracts
+- tRPC `health.*` / `verify.*` procedure names and the `AppRouter` type
+- `pnpm check` gate set and CI workflow (`.github/workflows/ci.yml`)
+
+### Commands that must pass before merge
+
+```bash
+pnpm check   # = build && typecheck && lint && format:check && test
+```
+
+CI runs the same sequence on every push/PR. A red gate blocks merge — fix the
+baseline you touched; never weaken a gate to make it pass.
+
+### What is deliberately NOT built yet
+
+Semantic conflict detection, Bob multi-agent orchestration, conflict-graph UI,
+automated resolution, and Change Passport generation exist here as **types,
+interfaces, and stubs only**. Do not mistake them for implementations — the
+feature branches own them.

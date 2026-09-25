@@ -1,0 +1,3 @@
+# Normalize line endings across teammate machines (Windows / macOS / Linux).
+# Without this, mixed CRLF/LF line endings create phantom merge conflicts.
+* text=auto

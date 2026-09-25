@@ -1,7 +1,7 @@
 {
   "name": "@mergemind/verification",
   "version": "0.1.0",
-  "description": "Conflict detection — compares Assumptions to find SemanticConflicts",
+  "description": "Conflict detection — compares Assumptions to find ConflictFindings",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

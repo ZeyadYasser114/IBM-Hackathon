@@ -8,7 +8,7 @@ export default {
     '^@mergemind/domain$': '<rootDir>/../domain/src/index.ts',
   },
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', { useESM: true }],
+    '^.+\\.tsx?$': ['ts-jest', { useESM: true, diagnostics: { ignoreCodes: [151002] } }],
   },
   // Never run compiled output: dist/ suites are stale duplicates of src/
   // and once masked a real failure behind passing stale tests.

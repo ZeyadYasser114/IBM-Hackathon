@@ -28,8 +28,8 @@ import type {
   AgentStatus,
   AgentType,
   Assumption,
-  FeatureRequirement,
-  RepositoryContext,
+  FeatureRequest,
+  RepositorySource,
 } from '@mergemind/domain';
 
 // ---------------------------------------------------------------------------
@@ -43,8 +43,8 @@ export interface AgentRunner {
    * Must not throw — return an empty array on failure and report via progress.
    */
   run(
-    requirement: FeatureRequirement,
-    context: RepositoryContext,
+    requirement: FeatureRequest,
+    context: RepositorySource,
     onProgress: (progress: AgentProgress) => void,
   ): Promise<Assumption[]>;
 }
@@ -57,8 +57,8 @@ abstract class StubRunner implements AgentRunner {
   abstract readonly agentType: AgentType;
 
   async run(
-    _requirement: FeatureRequirement,
-    _context: RepositoryContext,
+    _requirement: FeatureRequest,
+    _context: RepositorySource,
     onProgress: (p: AgentProgress) => void,
   ): Promise<Assumption[]> {
     onProgress(makeProgress(this.agentType, 'running', 'Analyzing…'));
@@ -127,8 +127,8 @@ export class AnalysisPipeline {
    *                     use this to push updates to the UI via SSE or WebSocket.
    */
   async run(
-    requirement: FeatureRequirement,
-    context: RepositoryContext,
+    requirement: FeatureRequest,
+    context: RepositorySource,
     onProgress: (progress: AgentProgress) => void = () => undefined,
   ): Promise<PipelineResult> {
     const progressLog: AgentProgress[] = [];
