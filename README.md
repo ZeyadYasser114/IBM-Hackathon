@@ -67,9 +67,16 @@ The code merged. **The meaning did not.**
 mergemind/
 ├── apps/
 │   ├── ui/           ← React + Vite frontend (5 screens + demo flow)
-│   └── api/          ← Express API server
+│   ├── api/          ← Express API server (:4000)
+│   └── web/          ← Next.js app (:3000, tRPC scaffold)
 ├── packages/
-│   └── semantic-engine/  ← Deterministic conflict detection (no LLM required)
+│   ├── semantic-engine/  ← Deterministic conflict detection (no LLM required)
+│   ├── domain/           ← Shared schemas & types (incl. ChangePassportDraft)
+│   ├── api/              ← tRPC router (health, verify, passport)
+│   ├── analysis/         ← Analysis pipeline orchestration
+│   ├── verification/     ← Verification result assembly
+│   ├── git-ingest/       ← Diff/branch ingestion + evidence builder
+│   └── fixtures/         ← Deterministic demo scenario fixtures
 ```
 
 ### Frontend (`apps/ui`)
@@ -110,40 +117,41 @@ GET  /api/health        → health check
 ### Prerequisites
 
 - Node.js 18+
-- npm 9+
+- pnpm 11+ (`corepack enable`, or `npm i -g pnpm@12.6.0` to match `packageManager`)
+
+### Install (once, from the repo root)
+
+```bash
+pnpm install
+```
 
 ### Run the frontend (demo mode — fully standalone)
 
 ```bash
-cd apps/ui
-npm install
-npm run dev
+pnpm ui:dev
 # → http://localhost:5173
 # → Navigate to /demo for the judge demo flow
 ```
 
-### Run both frontend and API server
+### Run both frontend and API server (one command)
 
 ```bash
-# Terminal 1 — API server
-cd apps/api
-npm install
-npm run dev
-# → http://localhost:4000
-
-# Terminal 2 — UI (already proxies /api to :4000)
-cd apps/ui
-npm install
-npm run dev
-# → http://localhost:5173
+pnpm dev:all
+# → API http://localhost:4000, UI http://localhost:5173 (proxies /api to :4000)
 ```
 
 ### Build for production
 
 ```bash
-cd apps/ui
-npm run build
-# → dist/ is a static bundle ready for any hosting provider
+pnpm build
+# → per-package dist/ output; apps/ui dist/ is a static bundle ready for any hosting provider
+```
+
+### Verify everything
+
+```bash
+pnpm check
+# → build + typecheck + lint + format:check + test
 ```
 
 ---
