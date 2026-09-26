@@ -17,7 +17,7 @@
 // Labels are truncated by the engine's truncateLabel() to prevent overflow.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useMemo } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { ConflictGraph, GraphNode, GraphEdge } from '@/types/semantic';
 import {
   computeLayout,
@@ -40,60 +40,66 @@ interface GraphCanvasProps {
 
 const KIND_STYLE = {
   REQUIREMENT: {
-    fill: 'rgba(59,130,246,0.10)',
-    stroke: 'rgba(59,130,246,0.55)',
-    text: '#93c5fd',
-    accent: '#3b82f6',
+    fill: 'rgba(69,137,255,0.10)',
+    stroke: 'rgba(69,137,255,0.55)',
+    text: '#78a9ff',
+    accent: '#4589ff',
   },
   CHANGE: {
-    fill: 'rgba(63,185,80,0.08)',
-    stroke: 'rgba(63,185,80,0.45)',
-    text: '#86efac',
-    accent: '#3fb950',
+    fill: 'rgba(66,190,101,0.08)',
+    stroke: 'rgba(66,190,101,0.45)',
+    text: '#6fdc8c',
+    accent: '#42be65',
   },
   ASSUMPTION: {
-    fill: 'rgba(227,179,65,0.10)',
-    stroke: 'rgba(227,179,65,0.50)',
-    text: '#fde68a',
-    accent: '#e3b341',
+    fill: 'rgba(241,194,27,0.10)',
+    stroke: 'rgba(241,194,27,0.50)',
+    text: '#ffe598',
+    accent: '#f1c21b',
   },
   FILE: {
-    fill: 'rgba(22,27,34,0.85)',
-    stroke: '#3d444d',
-    text: '#8b949e',
-    accent: '#484f58',
+    fill: 'rgba(38,38,38,0.85)',
+    stroke: '#525252',
+    text: '#a8a8a8',
+    accent: '#6f6f6f',
   },
   CONFLICT_HIGH: {
-    fill: 'rgba(248,81,73,0.18)',
-    stroke: '#f85149',
-    text: '#fca5a5',
-    accent: '#f85149',
+    fill: 'rgba(250,77,86,0.18)',
+    stroke: '#fa4d56',
+    text: '#ffb3b8',
+    accent: '#fa4d56',
   },
   CONFLICT_MEDIUM: {
-    fill: 'rgba(227,179,65,0.15)',
-    stroke: '#e3b341',
-    text: '#fde68a',
-    accent: '#e3b341',
+    fill: 'rgba(241,194,27,0.15)',
+    stroke: '#f1c21b',
+    text: '#ffe598',
+    accent: '#f1c21b',
   },
   CONFLICT_LOW: {
-    fill: 'rgba(63,185,80,0.12)',
-    stroke: '#3fb950',
-    text: '#86efac',
-    accent: '#3fb950',
+    fill: 'rgba(66,190,101,0.12)',
+    stroke: '#42be65',
+    text: '#6fdc8c',
+    accent: '#42be65',
   },
 } as const;
 
 const SEVERITY_ICON = { HIGH: '⚠', MEDIUM: '⚡', LOW: 'ℹ' } as const;
 const SEVERITY_STROKE_W = { HIGH: 2.2, MEDIUM: 1.6, LOW: 1.2 } as const;
 
-// Max characters for labels in each kind
+// Max characters for labels in each kind (tuned for compact 150px nodes)
 const LABEL_MAX: Record<GraphNode['kind'], number> = {
-  REQUIREMENT: 32,
-  CHANGE: 26,
-  ASSUMPTION: 28,
-  FILE: 30,
-  CONFLICT: 22,
+  REQUIREMENT: 26,
+  CHANGE: 20,
+  ASSUMPTION: 22,
+  FILE: 24,
+  CONFLICT: 18,
 };
+
+// ── Zoom limits ───────────────────────────────────────────────────────────────
+
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2.5;
+const ZOOM_STEP = 1.25;
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
@@ -116,12 +122,42 @@ export function GraphCanvas({ graph, onConflictClick, selectedConflictId }: Grap
     return m;
   }, [graph]);
 
+  // Zoom state — zoom is centred on the canvas midpoint
+  const [zoom, setZoom] = useState(1);
+  const zoomIn = () => setZoom((z) => Math.min(MAX_ZOOM, +(z * ZOOM_STEP).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z / ZOOM_STEP).toFixed(2)));
+  const zoomReset = () => setZoom(1);
+  const zoomLabel = `${Math.round(zoom * 100)}%`;
+
   return (
     <div
       style={{ width: '100%', overflow: 'hidden', borderRadius: 8 }}
       role="img"
       aria-label="Semantic conflict graph showing requirement, assumptions, files and detected conflict"
     >
+      {/* Zoom toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          gap: 'var(--sp-2)',
+          marginBottom: 'var(--sp-2)',
+        }}
+      >
+        <span style={{ fontSize: 12, color: 'var(--text-dim)', minWidth: 44, textAlign: 'right' }}>
+          {zoomLabel}
+        </span>
+        <ZoomButton label="Zoom out" onClick={zoomOut} disabled={zoom <= MIN_ZOOM}>
+          −
+        </ZoomButton>
+        <ZoomButton label="Zoom in" onClick={zoomIn} disabled={zoom >= MAX_ZOOM}>
+          +
+        </ZoomButton>
+        <ZoomButton label="Reset zoom" onClick={zoomReset} disabled={zoom === 1}>
+          Reset
+        </ZoomButton>
+      </div>
       <svg
         viewBox={`0 0 ${viewWidth} ${viewHeight}`}
         style={{ width: '100%', height: 'auto', display: 'block' }}
@@ -129,31 +165,73 @@ export function GraphCanvas({ graph, onConflictClick, selectedConflictId }: Grap
       >
         <Defs viewWidth={viewWidth} />
 
-        {/* Row tier labels (right margin) */}
-        <TierLabels viewWidth={viewWidth} />
+        <g
+          transform={`translate(${viewWidth / 2} ${viewHeight / 2}) scale(${zoom}) translate(${-viewWidth / 2} ${-viewHeight / 2})`}
+        >
+          {/* Row tier labels (right margin) */}
+          <TierLabels viewWidth={viewWidth} />
 
-        {/* Edges drawn first (behind nodes) */}
-        {graph.edges.map((edge, idx) => (
-          <EdgeLine key={idx} edge={edge} layout={layout} nodeKindMap={nodeKindMap} />
-        ))}
+          {/* Edges drawn first (behind nodes) */}
+          {graph.edges.map((edge, idx) => (
+            <EdgeLine key={idx} edge={edge} layout={layout} nodeKindMap={nodeKindMap} />
+          ))}
 
-        {/* Nodes */}
-        {graph.nodes.map((node) => {
-          const ln = getLayoutNode(layout, node.id);
-          if (!ln) return null;
-          return (
-            <NodeShape
-              key={node.id}
-              node={node}
-              ln={ln}
-              isSelected={node.id === selectedConflictId}
-              onConflictClick={onConflictClick}
-              severity={nodeSeverityMap.get(node.id)}
-            />
-          );
-        })}
+          {/* Nodes */}
+          {graph.nodes.map((node) => {
+            const ln = getLayoutNode(layout, node.id);
+            if (!ln) return null;
+            return (
+              <NodeShape
+                key={node.id}
+                node={node}
+                ln={ln}
+                isSelected={node.id === selectedConflictId}
+                onConflictClick={onConflictClick}
+                severity={nodeSeverityMap.get(node.id)}
+              />
+            );
+          })}
+        </g>
       </svg>
     </div>
+  );
+}
+
+// ── Zoom toolbar button ───────────────────────────────────────────────────────
+
+function ZoomButton({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        minWidth: 30,
+        padding: '2px 8px',
+        fontSize: 13,
+        fontWeight: 600,
+        color: disabled ? 'var(--text-dim)' : 'var(--text)',
+        background: 'var(--surface-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius)',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -164,13 +242,13 @@ function Defs({ viewWidth }: { viewWidth: number }) {
     <defs>
       {/* Arrow markers */}
       <marker id="arr-default" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto">
-        <polygon points="0 0, 9 3.5, 0 7" fill="#484f58" />
+        <polygon points="0 0, 9 3.5, 0 7" fill="#6f6f6f" />
       </marker>
       <marker id="arr-conflict" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto">
-        <polygon points="0 0, 9 3.5, 0 7" fill="rgba(248,81,73,0.8)" />
+        <polygon points="0 0, 9 3.5, 0 7" fill="rgba(250,77,86,0.8)" />
       </marker>
       <marker id="arr-medium" markerWidth="9" markerHeight="7" refX="9" refY="3.5" orient="auto">
-        <polygon points="0 0, 9 3.5, 0 7" fill="rgba(227,179,65,0.8)" />
+        <polygon points="0 0, 9 3.5, 0 7" fill="rgba(241,194,27,0.8)" />
       </marker>
 
       {/* Selected conflict glow */}
@@ -191,9 +269,9 @@ function Defs({ viewWidth }: { viewWidth: number }) {
         y2="0"
         gradientUnits="userSpaceOnUse"
       >
-        <stop offset="0" stopColor="rgba(22,27,34,0)" />
-        <stop offset="0.5" stopColor="rgba(22,27,34,0.4)" />
-        <stop offset="1" stopColor="rgba(22,27,34,0)" />
+        <stop offset="0" stopColor="rgba(38,38,38,0)" />
+        <stop offset="0.5" stopColor="rgba(38,38,38,0.4)" />
+        <stop offset="1" stopColor="rgba(38,38,38,0)" />
       </linearGradient>
     </defs>
   );
@@ -223,10 +301,10 @@ function TierLabels({ viewWidth }: { viewWidth: number }) {
             x={viewWidth - 8}
             y={y + 4}
             textAnchor="end"
-            fill="rgba(99,110,123,0.5)"
+            fill="rgba(168,168,168,0.5)"
             fontSize="9"
             fontWeight="700"
-            fontFamily="-apple-system, system-ui, sans-serif"
+            fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
             letterSpacing="0.1em"
           >
             {label}
@@ -266,19 +344,19 @@ function EdgeLine({ edge, layout, nodeKindMap }: EdgeLineProps) {
   // Cubic bezier control points for smooth S-curve
   const path = `M ${x1} ${y1} C ${x1} ${midY + 10}, ${x2} ${midY - 10}, ${x2} ${y2}`;
 
-  let stroke = '#3d444d';
+  let stroke = '#525252';
   let strokeW = 1;
   let dashArray: string | undefined;
   let markerEnd = 'url(#arr-default)';
 
   if (isConflictEdge) {
-    stroke = 'rgba(248,81,73,0.45)';
+    stroke = 'rgba(250,77,86,0.45)';
     strokeW = 1.5;
     dashArray = '6 3';
     markerEnd = 'url(#arr-conflict)';
     // Downgrade visuals for MEDIUM severity conflicts
     if (isMediumConflict) {
-      stroke = 'rgba(227,179,65,0.45)';
+      stroke = 'rgba(241,194,27,0.45)';
       markerEnd = 'url(#arr-medium)';
     }
   }
@@ -301,9 +379,9 @@ function EdgeLine({ edge, layout, nodeKindMap }: EdgeLineProps) {
           x={midLabelX}
           y={midLabelY - 3}
           textAnchor="middle"
-          fill="rgba(99,110,123,0.7)"
+          fill="rgba(168,168,168,0.7)"
           fontSize="9.5"
-          fontFamily="-apple-system, system-ui, sans-serif"
+          fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
           style={{ pointerEvents: 'none' }}
         >
           {edge.label}
@@ -390,7 +468,7 @@ function RequirementNode({ ln, label }: { node: GraphNode; ln: LayoutNode; label
         fill={style.text}
         fontSize="8.5"
         fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
         letterSpacing="0.08em"
         opacity="0.65"
       >
@@ -404,7 +482,7 @@ function RequirementNode({ ln, label }: { node: GraphNode; ln: LayoutNode; label
         fill={style.text}
         fontSize="12"
         fontWeight="600"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
       >
         {label}
       </text>
@@ -439,7 +517,7 @@ function ChangeNode({ ln, label }: { node: GraphNode; ln: LayoutNode; label: str
         fill={style.text}
         fontSize="8.5"
         fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
         letterSpacing="0.08em"
         opacity="0.65"
       >
@@ -452,7 +530,7 @@ function ChangeNode({ ln, label }: { node: GraphNode; ln: LayoutNode; label: str
         fill={style.text}
         fontSize="12"
         fontWeight="600"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
       >
         {label}
       </text>
@@ -489,7 +567,7 @@ function AssumptionNode({
 
   // Extra thick border if the assumption is part of a conflict
   const strokeW = severity ? 1.6 : 1;
-  const strokeColor = severity === 'HIGH' ? 'rgba(248,81,73,0.55)' : style.stroke;
+  const strokeColor = severity === 'HIGH' ? 'rgba(250,77,86,0.55)' : style.stroke;
 
   return (
     <g>
@@ -501,7 +579,7 @@ function AssumptionNode({
         fill={style.text}
         fontSize="8.5"
         fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
         letterSpacing="0.08em"
         opacity="0.65"
       >
@@ -514,7 +592,7 @@ function AssumptionNode({
         fill={style.text}
         fontSize="11.5"
         fontWeight="600"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
       >
         {label}
       </text>
@@ -556,7 +634,7 @@ function FileNode({ ln, label }: { node: GraphNode; ln: LayoutNode; label: strin
         fill={style.accent}
         fontSize="8.5"
         fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
         letterSpacing="0.08em"
       >
         FILE
@@ -593,7 +671,7 @@ function FileLabel({ label, cx, cy }: { label: string; cx: number; cy: number })
         x={cx}
         y={cy - 7}
         textAnchor="middle"
-        fill="rgba(139,148,158,0.55)"
+        fill="rgba(168,168,168,0.55)"
         fontSize="9"
         fontWeight="400"
         fontFamily="var(--mono, monospace)"
@@ -680,7 +758,7 @@ function ConflictNode({ ln, label, severity, isSelected, onClick }: ConflictNode
         textAnchor="middle"
         fill={style.accent}
         fontSize="13"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
       >
         {icon}
       </text>
@@ -692,7 +770,7 @@ function ConflictNode({ ln, label, severity, isSelected, onClick }: ConflictNode
         fill={style.text}
         fontSize="11"
         fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
       >
         {label}
       </text>
@@ -704,7 +782,7 @@ function ConflictNode({ ln, label, severity, isSelected, onClick }: ConflictNode
         fill={style.accent}
         fontSize="8.5"
         fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif"
+        fontFamily="'IBM Plex Sans', -apple-system, system-ui, sans-serif"
         letterSpacing="0.1em"
         opacity="0.8"
       >

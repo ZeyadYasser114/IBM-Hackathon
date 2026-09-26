@@ -54,8 +54,8 @@ function AgentRow({ agent, index }: { agent: AgentRun; index: number }) {
         alignItems: 'start',
         gap: 'var(--sp-3)',
         padding: 'var(--sp-3) var(--sp-4)',
-        background: agent.status === 'RUNNING' ? 'rgba(59,130,246,0.05)' : 'var(--surface-2)',
-        border: `1px solid ${agent.status === 'RUNNING' ? 'rgba(59,130,246,0.25)' : 'var(--border-2)'}`,
+        background: agent.status === 'RUNNING' ? 'rgba(69,137,255,0.05)' : 'var(--surface-2)',
+        border: `1px solid ${agent.status === 'RUNNING' ? 'rgba(69,137,255,0.25)' : 'var(--border-2)'}`,
         borderRadius: 'var(--radius)',
         animationDelay: `${index * 60}ms`,
       }}

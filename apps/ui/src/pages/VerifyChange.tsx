@@ -198,8 +198,8 @@ function HeroGraphic() {
     >
       <rect width="80" height="80" rx="20" fill="var(--surface)" stroke="var(--border)" />
       <circle cx="40" cy="18" r="6" fill="none" stroke="var(--accent)" strokeWidth="1.5" />
-      <circle cx="20" cy="44" r="6" fill="none" stroke="#86efac" strokeWidth="1.5" />
-      <circle cx="60" cy="44" r="6" fill="none" stroke="#fde68a" strokeWidth="1.5" />
+      <circle cx="20" cy="44" r="6" fill="none" stroke="#6fdc8c" strokeWidth="1.5" />
+      <circle cx="60" cy="44" r="6" fill="none" stroke="#ffe598" strokeWidth="1.5" />
       <circle cx="40" cy="62" r="7" fill="var(--high-bg)" stroke="var(--high)" strokeWidth="1.8" />
       <path
         d="M40 22 L20 38 M40 22 L60 38 M20 50 L38 56 M60 50 L42 56"
@@ -208,7 +208,7 @@ function HeroGraphic() {
       />
       <path
         d="M24 48 L36 58 M56 48 L44 58"
-        stroke="rgba(248,81,73,0.5)"
+        stroke="rgba(250,77,86,0.5)"
         strokeWidth="1.2"
         strokeDasharray="3 2"
       />

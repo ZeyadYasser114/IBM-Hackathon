@@ -46,7 +46,7 @@ export function DemoBar() {
           textTransform: 'uppercase',
           color: 'var(--accent)',
           background: 'var(--accent-glow)',
-          border: '1px solid rgba(59,130,246,0.3)',
+          border: '1px solid rgba(69,137,255,0.3)',
           borderRadius: 4,
           padding: '2px 6px',
           flexShrink: 0,

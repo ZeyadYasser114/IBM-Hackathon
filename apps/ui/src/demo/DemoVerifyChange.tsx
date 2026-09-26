@@ -84,7 +84,7 @@ export function DemoVerifyChange() {
           alignItems: 'center',
           gap: 'var(--sp-4)',
           padding: 'var(--sp-4)',
-          background: isGitCleanStep ? 'rgba(63,185,80,0.06)' : 'var(--surface-2)',
+          background: isGitCleanStep ? 'rgba(66,190,101,0.06)' : 'var(--surface-2)',
           border: `1px solid ${isGitCleanStep ? 'var(--low-border)' : 'var(--border)'}`,
           borderRadius: 'var(--radius-lg)',
           marginBottom: 'var(--sp-5)',

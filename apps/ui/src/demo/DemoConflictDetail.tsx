@@ -162,8 +162,8 @@ export function DemoConflictDetail() {
           <AsmCard
             assumption={CONFLICT.assumptionA}
             label="Authentication change"
-            accent="#86efac"
-            accentBg="rgba(63,185,80,0.07)"
+            accent="#6fdc8c"
+            accentBg="rgba(66,190,101,0.07)"
           />
           <AsmCard
             assumption={CONFLICT.assumptionB}
@@ -210,7 +210,7 @@ export function DemoConflictDetail() {
           <div
             className="card"
             style={{
-              borderColor: 'rgba(59,130,246,0.3)',
+              borderColor: 'rgba(69,137,255,0.3)',
               background: 'var(--accent-glow)',
             }}
           >

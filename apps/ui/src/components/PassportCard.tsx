@@ -260,10 +260,10 @@ function VerdictStamp({ status, color }: { status: string; color: string }) {
           color,
           background:
             status === 'PASS'
-              ? 'rgba(63,185,80,0.08)'
+              ? 'rgba(66,190,101,0.08)'
               : status === 'FAIL'
-                ? 'rgba(248,81,73,0.08)'
-                : 'rgba(99,110,123,0.08)',
+                ? 'rgba(250,77,86,0.08)'
+                : 'rgba(168,168,168,0.08)',
         }}
       >
         {icon}

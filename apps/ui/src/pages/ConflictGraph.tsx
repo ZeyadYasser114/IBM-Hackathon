@@ -277,7 +277,7 @@ function ConflictRow({
       style={{
         cursor: 'pointer',
         border: `1px solid ${isSelected ? 'var(--accent)' : severityBorder}`,
-        background: isSelected ? 'rgba(59,130,246,0.06)' : severityBg,
+        background: isSelected ? 'rgba(69,137,255,0.06)' : severityBg,
         display: 'grid',
         gridTemplateColumns: '1fr auto',
         alignItems: 'center',
@@ -331,11 +331,11 @@ function ConflictRow({
 
 function GraphLegend() {
   const items = [
-    { shape: 'rect', color: 'rgba(59,130,246,0.3)', label: 'Requirement' },
-    { shape: 'rect', color: 'rgba(63,185,80,0.3)', label: 'Change' },
-    { shape: 'parallelogram', color: 'rgba(227,179,65,0.3)', label: 'Assumption' },
-    { shape: 'doc', color: 'rgba(99,110,123,0.3)', label: 'File' },
-    { shape: 'diamond', color: 'rgba(248,81,73,0.3)', label: 'Conflict' },
+    { shape: 'rect', color: 'rgba(69,137,255,0.3)', label: 'Requirement' },
+    { shape: 'rect', color: 'rgba(66,190,101,0.3)', label: 'Change' },
+    { shape: 'parallelogram', color: 'rgba(241,194,27,0.3)', label: 'Assumption' },
+    { shape: 'doc', color: 'rgba(168,168,168,0.3)', label: 'File' },
+    { shape: 'diamond', color: 'rgba(250,77,86,0.3)', label: 'Conflict' },
   ];
 
   return (

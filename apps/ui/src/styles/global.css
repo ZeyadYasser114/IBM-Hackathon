@@ -12,43 +12,43 @@
 }
 
 :root {
-  /* Colours */
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface-2: #1c2129;
-  --border: #30363d;
-  --border-2: #21262d;
-  --text: #e6edf3;
-  --text-muted: #848d97;
-  --text-dim: #6e7681;
+  /* Colours — IBM Carbon g100 dark theme */
+  --bg: #161616; /* Carbon Gray 100 */
+  --surface: #262626; /* Carbon Gray 90 */
+  --surface-2: #393939; /* Carbon Gray 80 */
+  --border: #525252; /* Carbon Gray 70 */
+  --border-2: #393939; /* Carbon Gray 80 */
+  --text: #f4f4f4; /* Carbon Gray 10 */
+  --text-muted: #c6c6c6; /* Carbon Gray 30 */
+  --text-dim: #a8a8a8; /* Carbon Gray 40 — AA on --bg */
 
-  --accent: #3b82f6; /* IBM-ish blue */
-  --accent-dim: #1d4ed8;
-  --accent-glow: rgba(59, 130, 246, 0.15);
+  --accent: #4589ff; /* Carbon Blue 40 */
+  --accent-dim: #0043ce; /* Carbon Blue 70 */
+  --accent-glow: rgba(69, 137, 255, 0.15);
 
-  --high: #f85149; /* HIGH severity red */
-  --high-bg: rgba(248, 81, 73, 0.12);
-  --high-border: rgba(248, 81, 73, 0.4);
+  --high: #fa4d56; /* Carbon Red 50 — HIGH severity */
+  --high-bg: rgba(250, 77, 86, 0.12);
+  --high-border: rgba(250, 77, 86, 0.4);
 
-  --medium: #e3b341; /* MEDIUM severity amber */
-  --medium-bg: rgba(227, 179, 65, 0.12);
-  --medium-border: rgba(227, 179, 65, 0.4);
+  --medium: #f1c21b; /* Carbon Yellow 30 — MEDIUM severity */
+  --medium-bg: rgba(241, 194, 27, 0.12);
+  --medium-border: rgba(241, 194, 27, 0.4);
 
-  --low: #3fb950; /* LOW severity green */
-  --low-bg: rgba(63, 185, 80, 0.12);
-  --low-border: rgba(63, 185, 80, 0.4);
+  --low: #42be65; /* Carbon Green 40 — LOW severity */
+  --low-bg: rgba(66, 190, 101, 0.12);
+  --low-border: rgba(66, 190, 101, 0.4);
 
-  --pass: #3fb950;
-  --fail: #f85149;
-  --pending: #848d97;
+  --pass: #42be65;
+  --fail: #fa4d56;
+  --pending: #c6c6c6;
 
-  --radius-sm: 4px;
-  --radius: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 0px;
+  --radius: 2px;
+  --radius-lg: 2px;
 
-  /* Typography */
-  --font: -apple-system, 'Segoe UI', system-ui, sans-serif;
-  --mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  /* Typography — IBM Plex, per Carbon defaults */
+  --font: 'IBM Plex Sans', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
 
   /* Spacing */
   --sp-1: 4px;
@@ -60,6 +60,10 @@
   --sp-8: 32px;
   --sp-10: 40px;
   --sp-12: 48px;
+}
+
+html {
+  color-scheme: dark;
 }
 
 html,

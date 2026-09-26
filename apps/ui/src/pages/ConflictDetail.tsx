@@ -106,7 +106,7 @@ export function ConflictDetail() {
             style={{
               marginTop: 'var(--sp-4)',
               padding: 'var(--sp-3) var(--sp-4)',
-              background: 'rgba(227,179,65,0.08)',
+              background: 'rgba(241,194,27,0.08)',
               border: '1px solid var(--medium-border)',
               borderRadius: 'var(--radius)',
               fontSize: 12,
@@ -186,8 +186,8 @@ export function ConflictDetail() {
           <AssumptionCard
             assumption={conflict.assumptionA}
             label="Change A"
-            accent="#86efac"
-            accentBg="rgba(63,185,80,0.07)"
+            accent="#6fdc8c"
+            accentBg="rgba(66,190,101,0.07)"
           />
           <AssumptionCard
             assumption={conflict.assumptionB}
@@ -258,7 +258,7 @@ export function ConflictDetail() {
           <div
             className="card"
             style={{
-              borderColor: 'rgba(59,130,246,0.3)',
+              borderColor: 'rgba(69,137,255,0.3)',
               background: 'var(--accent-glow)',
             }}
           >

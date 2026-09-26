@@ -34,11 +34,11 @@ export interface ComputedLayout {
 
 // ── Sizing constants ──────────────────────────────────────────────────────────
 
-export const NODE_W = 200; // base node width
-export const NODE_H = 52; // base node height
-const ROW_GAP = 90; // vertical gap between row centres
-const CONFLICT_NODE_R = 34; // radius of the conflict diamond bounding box
-const H_PAD = 60; // horizontal padding on each side
+export const NODE_W = 150; // base node width (compact — fits 8+ node maps)
+export const NODE_H = 44; // base node height
+const ROW_GAP = 72; // vertical gap between row centres
+const CONFLICT_NODE_R = 28; // radius of the conflict diamond bounding box
+const H_PAD = 48; // horizontal padding on each side
 
 // ── Row tier assignment ───────────────────────────────────────────────────────
 
