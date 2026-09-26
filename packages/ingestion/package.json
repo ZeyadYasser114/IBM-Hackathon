@@ -1,0 +1,21 @@
+{
+  "name": "@mergemind/ingestion",
+  "version": "0.1.0",
+  "description": "Provider-agnostic change-ingestion and evidence-packaging layer for MergeMind",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}
