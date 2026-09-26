@@ -6,22 +6,22 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type DemoStepId =
-  | 'verify'        // Step 1 — pre-filled Verify Change form
-  | 'git-clean'     // Step 2 — show the Git precondition (still on Verify screen)
-  | 'analysis'      // Step 3 — Bob agent animation
-  | 'graph'         // Step 4 — Conflict Graph revealed
-  | 'highlight'     // Step 5 — conflict node highlighted
-  | 'detail'        // Step 6 — Conflict Detail evidence
-  | 'resolution'    // Step 7 — Bob resolution accepted
-  | 'tests'         // Step 8 — 43/43 tests passing shown
-  | 'passport'      // Step 9 — Change Passport PASS
-  | 'done';         // Step 10 — end state with restart CTA
+  | 'verify' // Step 1 — pre-filled Verify Change form
+  | 'git-clean' // Step 2 — show the Git precondition (still on Verify screen)
+  | 'analysis' // Step 3 — Bob agent animation
+  | 'graph' // Step 4 — Conflict Graph revealed
+  | 'highlight' // Step 5 — conflict node highlighted
+  | 'detail' // Step 6 — Conflict Detail evidence
+  | 'resolution' // Step 7 — Bob resolution accepted
+  | 'tests' // Step 8 — 43/43 tests passing shown
+  | 'passport' // Step 9 — Change Passport PASS
+  | 'done'; // Step 10 — end state with restart CTA
 
 export interface DemoStep {
-  id:       DemoStepId;
-  index:    number;        // 0-based
-  label:    string;        // shown in DemoBar
-  route:    string;        // React Router path to navigate to
+  id: DemoStepId;
+  index: number; // 0-based
+  label: string; // shown in DemoBar
+  route: string; // React Router path to navigate to
   /** How long (ms) this step remains before auto-advancing. 0 = manual only. */
   autoDurationMs: number;
 }
@@ -102,9 +102,10 @@ export const DEMO_STEPS: DemoStep[] = [
 ];
 
 // Lookup helpers
-export const DEMO_STEP_BY_ID = Object.fromEntries(
-  DEMO_STEPS.map((s) => [s.id, s])
-) as Record<DemoStepId, DemoStep>;
+export const DEMO_STEP_BY_ID = Object.fromEntries(DEMO_STEPS.map((s) => [s.id, s])) as Record<
+  DemoStepId,
+  DemoStep
+>;
 
 export const DEMO_STEP_BY_INDEX = (idx: number): DemoStep =>
   DEMO_STEPS[Math.min(Math.max(idx, 0), DEMO_STEPS.length - 1)]!;
@@ -113,6 +114,6 @@ export const DEMO_STEP_BY_INDEX = (idx: number): DemoStep =>
 // These keep demo routing deterministic — the demo always uses scenario 0
 // and conflict s1-conf regardless of any page-level state.
 
-export const DEMO_SCENARIO_IDX   = 0;
-export const DEMO_CONFLICT_ID    = 's1-conf';
+export const DEMO_SCENARIO_IDX = 0;
+export const DEMO_CONFLICT_ID = 's1-conf';
 export const DEMO_AGENT_INTERVAL = 800; // ms per agent (faster than default 1200)

@@ -1,0 +1,168 @@
+# MergeMind CI — runs the full quality suite on pushes to main and
+# pull requests targeting main.
+#
+# Teammate contract: if this workflow is green, your branch is safe to merge.
+# Run the same gates locally before pushing: `pnpm check`
+#
+# Every step must pass — there are intentionally no `|| true` fallbacks or
+# `continue-on-error` flags. A red gate blocks merge.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref so stale green checks cannot mask
+# a newer red run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: build · typecheck · lint · test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Test
+        run: pnpm test
+
+  backend-smoke:
+    name: backend smoke (api verify → conflict)
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build semantic engine and API server
+        run: pnpm -r --filter "./packages/*" build && pnpm --filter "./apps/api" build
+
+      - name: Start API server
+        run: |
+          PORT=4101 node apps/api/dist/index.js > /tmp/mergemind-api.log 2>&1 &
+          echo $! > /tmp/mergemind-api.pid
+
+      - name: Smoke test main workflow (health → verify → session)
+        run: |
+          python3 - <<'EOF'
+          import json, time, urllib.error, urllib.request
+
+          BASE = "http://localhost:4101"
+
+          def api(method, path, payload=None):
+              data = json.dumps(payload).encode() if payload is not None else None
+              req = urllib.request.Request(
+                  BASE + path, data=data, method=method,
+                  headers={"Content-Type": "application/json"},
+              )
+              with urllib.request.urlopen(req, timeout=10) as res:
+                  return res.status, json.loads(res.read().decode())
+
+          # 1. Wait for health (server boot can take a few seconds)
+          for _ in range(30):
+              try:
+                  status, health = api("GET", "/api/health")
+                  assert status == 200 and health["status"] == "ok", health
+                  break
+              except Exception:
+                  time.sleep(1)
+          else:
+              raise SystemExit("API server did not become healthy in time")
+
+          # 2. Start verification with the killer example (owner vs admin)
+          status, started = api("POST", "/api/verify", {
+              "repository": "demo-org-billing",
+              "featureRequest": "Add organization billing. Only organization owners can manage subscriptions.",
+              "branchA": "auth-task",
+              "branchB": "billing-task",
+              "codeA": "export const ORG_PRIVILEGED_ROLE = 'owner';",
+              "codeB": "if (user.role === 'admin') { manageSubscription(); }",
+          })
+          assert status == 202, started
+          session_id = started["sessionId"]
+
+          # 3. Poll until COMPLETE and assert the expected conflict is found
+          for _ in range(30):
+              status, session = api("GET", f"/api/session/{session_id}")
+              assert status == 200, session
+              if session["status"] == "COMPLETE":
+                  break
+              time.sleep(1)
+          else:
+              raise SystemExit(f"Session {session_id} did not complete in time")
+
+          result = session["result"]
+          assert result["status"] == "CONFLICTS_FOUND", result
+          assert result["conflictsFound"] >= 1, result
+          assert any(c["severity"] == "HIGH" for c in result["conflicts"]), result
+          print(f"SMOKE OK: {result['summary']}")
+
+          # 4. Negative paths: bad request is rejected, unknown session is 404
+          try:
+              api("POST", "/api/verify", {})
+              raise SystemExit("Expected 400 for empty verify payload")
+          except urllib.error.HTTPError as e:
+              assert e.code == 400, e.code
+
+          try:
+              api("GET", "/api/session/does-not-exist")
+              raise SystemExit("Expected 404 for unknown session")
+          except urllib.error.HTTPError as e:
+              assert e.code == 404, e.code
+          print("SMOKE OK: negative paths (400/404) behave correctly")
+          EOF
+
+      - name: Stop API server
+        if: always()
+        run: |
+          kill "$(cat /tmp/mergemind-api.pid)" || true
+          cat /tmp/mergemind-api.log || true

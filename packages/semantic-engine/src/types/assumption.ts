@@ -4,8 +4,8 @@
  * SemanticAssumption — the atomic unit of semantic analysis.
  */
 
-import { Confidence, SourceType } from "./enums";
-import { EvidenceReference, validateEvidenceReference } from "./evidence";
+import { Confidence, SourceType } from './enums';
+import { EvidenceReference, validateEvidenceReference } from './evidence';
 
 export interface SemanticAssumption {
   readonly id: string;
@@ -24,31 +24,35 @@ export interface AssumptionValidationError {
   readonly message: string;
 }
 
-export function validateSemanticAssumption(
-  a: SemanticAssumption
-): AssumptionValidationError[] {
+export function validateSemanticAssumption(a: SemanticAssumption): AssumptionValidationError[] {
   const errors: AssumptionValidationError[] = [];
 
   if (!a.id || a.id.trim().length === 0) {
-    errors.push({ field: "id", message: "id must be a non-empty string" });
+    errors.push({ field: 'id', message: 'id must be a non-empty string' });
   }
   if (!a.statement || a.statement.trim().length === 0) {
-    errors.push({ field: "statement", message: "statement must be a non-empty string" });
+    errors.push({ field: 'statement', message: 'statement must be a non-empty string' });
   }
   if (!a.subject || a.subject.trim().length === 0) {
-    errors.push({ field: "subject", message: "subject must be a non-empty string" });
+    errors.push({ field: 'subject', message: 'subject must be a non-empty string' });
   }
   if (!a.predicate || a.predicate.trim().length === 0) {
-    errors.push({ field: "predicate", message: "predicate must be a non-empty string" });
+    errors.push({ field: 'predicate', message: 'predicate must be a non-empty string' });
   }
   if (!Object.values(SourceType).includes(a.sourceType)) {
-    errors.push({ field: "sourceType", message: `sourceType must be one of: ${Object.values(SourceType).join(", ")}` });
+    errors.push({
+      field: 'sourceType',
+      message: `sourceType must be one of: ${Object.values(SourceType).join(', ')}`,
+    });
   }
   if (!a.evidenceText || a.evidenceText.trim().length === 0) {
-    errors.push({ field: "evidenceText", message: "evidenceText must be a non-empty string" });
+    errors.push({ field: 'evidenceText', message: 'evidenceText must be a non-empty string' });
   }
   if (!Object.values(Confidence).includes(a.confidence)) {
-    errors.push({ field: "confidence", message: `confidence must be one of: ${Object.values(Confidence).join(", ")}` });
+    errors.push({
+      field: 'confidence',
+      message: `confidence must be one of: ${Object.values(Confidence).join(', ')}`,
+    });
   }
   if (a.supportingEvidence !== undefined) {
     a.supportingEvidence.forEach((ev, idx) => {
@@ -75,7 +79,7 @@ export function assertValidSemanticAssumption(a: SemanticAssumption): void {
   const errors = validateSemanticAssumption(a);
   if (errors.length > 0) {
     throw new Error(
-      `Invalid SemanticAssumption (id="${a.id}"): ${errors.map((e) => `${e.field} — ${e.message}`).join("; ")}`
+      `Invalid SemanticAssumption (id="${a.id}"): ${errors.map((e) => `${e.field} — ${e.message}`).join('; ')}`,
     );
   }
 }

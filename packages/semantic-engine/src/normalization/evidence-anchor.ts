@@ -8,9 +8,9 @@
  * trace explaining every change made.
  */
 
-import { SemanticAssumption } from "../types/assumption";
-import { EvidenceReference } from "../types/evidence";
-import { SourceType } from "../types/enums";
+import { SemanticAssumption } from '../types/assumption';
+import { EvidenceReference } from '../types/evidence';
+import { SourceType } from '../types/enums';
 
 // ---------------------------------------------------------------------------
 // EvidenceAnchor
@@ -31,7 +31,7 @@ export interface EvidenceAnchor {
 // ---------------------------------------------------------------------------
 
 export interface NormalizationStep {
-  readonly field: "subject" | "predicate" | "value";
+  readonly field: 'subject' | 'predicate' | 'value';
   readonly rawValue: string;
   readonly canonicalValue: string;
   readonly explanation: string;

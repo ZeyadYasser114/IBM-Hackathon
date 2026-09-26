@@ -12,21 +12,18 @@
  *  - re-apply severity/confidence using the deterministic rules from severity-rules.ts
  */
 
-import { SemanticConflict } from "../types/conflict";
-import { ConflictType } from "../types/enums";
-import { NormalizedAssumption } from "../normalization/evidence-anchor";
-import { EvidenceReference } from "../types/evidence";
-import { ConflictReport, EvidenceSide } from "./conflict-report";
-import { assignSeverityAndConfidence } from "./severity-rules";
+import { SemanticConflict } from '../types/conflict';
+import { ConflictType } from '../types/enums';
+import { NormalizedAssumption } from '../normalization/evidence-anchor';
+import { EvidenceReference } from '../types/evidence';
+import { ConflictReport, EvidenceSide } from './conflict-report';
+import { assignSeverityAndConfidence } from './severity-rules';
 
 // ---------------------------------------------------------------------------
 // Title generation
 // ---------------------------------------------------------------------------
 
-function buildTitle(
-  conflictType: ConflictType,
-  affectedEntity: string
-): string {
+function buildTitle(conflictType: ConflictType, affectedEntity: string): string {
   switch (conflictType) {
     case ConflictType.BUSINESS_RULE:
       return `Authorization contradiction on '${affectedEntity}'`;
@@ -46,7 +43,7 @@ function buildSourceLabel(assumption: NormalizedAssumption): string {
     return assumption.anchor.filePath;
   }
   // Use /g flag so all underscores are replaced (e.g. "code_diff" → "code diff")
-  return assumption.raw.sourceType.toLowerCase().replace(/_/g, " ");
+  return assumption.raw.sourceType.toLowerCase().replace(/_/g, ' ');
 }
 
 // ---------------------------------------------------------------------------
@@ -60,9 +57,7 @@ function buildEvidenceSide(assumption: NormalizedAssumption): EvidenceSide {
     canonicalPredicate: assumption.canonicalPredicate,
     evidenceText: assumption.raw.evidenceText,
     evidenceReferences: assumption.anchor.references,
-    ...(assumption.anchor.filePath !== undefined
-      ? { filePath: assumption.anchor.filePath }
-      : {}),
+    ...(assumption.anchor.filePath !== undefined ? { filePath: assumption.anchor.filePath } : {}),
   };
 }
 
@@ -73,14 +68,14 @@ function buildEvidenceSide(assumption: NormalizedAssumption): EvidenceSide {
 function buildWhyIncompatible(
   conflictType: ConflictType,
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): string {
   const entity = left.canonicalSubject;
   const leftPred = left.canonicalPredicate;
   const rightPred = right.canonicalPredicate;
 
-  const eqL = leftPred.indexOf("=");
-  const eqR = rightPred.indexOf("=");
+  const eqL = leftPred.indexOf('=');
+  const eqR = rightPred.indexOf('=');
   const leftVal = eqL !== -1 ? leftPred.slice(eqL + 1).trim() : leftPred;
   const rightVal = eqR !== -1 ? rightPred.slice(eqR + 1).trim() : rightPred;
 
@@ -105,8 +100,8 @@ function buildWhyIncompatible(
       );
     case ConflictType.DEPENDENCY:
       return (
-        `'${leftLabel}' treats '${entity}' as ${leftVal === "true" ? "required (always present)" : "optional (may be absent)"}, ` +
-        `but '${rightLabel}' treats it as ${rightVal === "true" ? "required (always present)" : "optional (may be absent)"}. ` +
+        `'${leftLabel}' treats '${entity}' as ${leftVal === 'true' ? 'required (always present)' : 'optional (may be absent)'}, ` +
+        `but '${rightLabel}' treats it as ${rightVal === 'true' ? 'required (always present)' : 'optional (may be absent)'}. ` +
         `Any code path that reaches '${rightLabel}' after '${leftLabel}' has set '${entity}' ` +
         `to absent will fail when it attempts to use '${entity}'.`
       );
@@ -120,16 +115,16 @@ function buildWhyIncompatible(
 function buildVerificationHint(
   conflictType: ConflictType,
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): string {
   const entity = left.canonicalSubject;
   const leftLabel = buildSourceLabel(left);
   const rightLabel = buildSourceLabel(right);
 
-  const eqL = left.canonicalPredicate.indexOf("=");
-  const eqR = right.canonicalPredicate.indexOf("=");
-  const leftVal = eqL !== -1 ? left.canonicalPredicate.slice(eqL + 1).trim() : "?";
-  const rightVal = eqR !== -1 ? right.canonicalPredicate.slice(eqR + 1).trim() : "?";
+  const eqL = left.canonicalPredicate.indexOf('=');
+  const eqR = right.canonicalPredicate.indexOf('=');
+  const leftVal = eqL !== -1 ? left.canonicalPredicate.slice(eqL + 1).trim() : '?';
+  const rightVal = eqR !== -1 ? right.canonicalPredicate.slice(eqR + 1).trim() : '?';
 
   switch (conflictType) {
     case ConflictType.BUSINESS_RULE:
@@ -180,7 +175,7 @@ function deduplicateRefs(
 export function buildReport(
   conflict: SemanticConflict,
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): ConflictReport {
   const ruling = assignSeverityAndConfidence(conflict.conflictType, left, right);
 
@@ -190,10 +185,7 @@ export function buildReport(
     affectedFiles.push(right.anchor.filePath);
   }
 
-  const allEvidenceReferences = deduplicateRefs(
-    left.anchor.references,
-    right.anchor.references
-  );
+  const allEvidenceReferences = deduplicateRefs(left.anchor.references, right.anchor.references);
 
   return {
     id: conflict.id,

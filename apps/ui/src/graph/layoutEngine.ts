@@ -34,20 +34,20 @@ export interface ComputedLayout {
 
 // ── Sizing constants ──────────────────────────────────────────────────────────
 
-export const NODE_W   = 200;  // base node width
-export const NODE_H   = 52;   // base node height
-const ROW_GAP         = 90;   // vertical gap between row centres
-const CONFLICT_NODE_R = 34;   // radius of the conflict diamond bounding box
-const H_PAD           = 60;   // horizontal padding on each side
+export const NODE_W = 200; // base node width
+export const NODE_H = 52; // base node height
+const ROW_GAP = 90; // vertical gap between row centres
+const CONFLICT_NODE_R = 34; // radius of the conflict diamond bounding box
+const H_PAD = 60; // horizontal padding on each side
 
 // ── Row tier assignment ───────────────────────────────────────────────────────
 
 const KIND_ROW: Record<GraphNode['kind'], number> = {
   REQUIREMENT: 0,
-  CHANGE:      1,
-  ASSUMPTION:  2,
-  FILE:        3,
-  CONFLICT:    4,
+  CHANGE: 1,
+  ASSUMPTION: 2,
+  FILE: 3,
+  CONFLICT: 4,
 };
 
 // ── Main layout function ──────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ export function computeLayout(graph: ConflictGraph): ComputedLayout {
   const maxNodesInRow = Math.max(...rows.map((r) => byRow.get(r)!.length));
   const minWidth = Math.max(600, maxNodesInRow * (NODE_W + 40) + H_PAD * 2);
 
-  const viewWidth  = minWidth;
+  const viewWidth = minWidth;
   const viewHeight = maxRow * (NODE_H + ROW_GAP) + NODE_H + 60; // +60 bottom padding
 
   const layoutNodes: LayoutNode[] = [];
@@ -92,10 +92,10 @@ export function computeLayout(graph: ConflictGraph): ComputedLayout {
 
       const isConflict = node.kind === 'CONFLICT';
       layoutNodes.push({
-        id:     node.id,
+        id: node.id,
         x,
         y,
-        width:  isConflict ? CONFLICT_NODE_R * 2 + 40 : NODE_W,
+        width: isConflict ? CONFLICT_NODE_R * 2 + 40 : NODE_W,
         height: isConflict ? CONFLICT_NODE_R * 2 : NODE_H,
         row,
       });

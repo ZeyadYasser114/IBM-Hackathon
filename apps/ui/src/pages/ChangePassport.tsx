@@ -23,17 +23,17 @@ export function ChangePassportPage() {
   const fromResolved = (location.state as { resolved?: boolean } | null)?.resolved === true;
   const [variantIdx, setVariantIdx] = useState(fromResolved ? 0 : 1);
 
-  const variant  = PASSPORT_VARIANTS[variantIdx]!;
+  const variant = PASSPORT_VARIANTS[variantIdx]!;
   const passport = variant.passport;
 
   // ── JSON export ──────────────────────────────────────────────────────────
   const handleExport = () => {
-    const json     = serializePassport(passport);
-    const blob     = new Blob([json], { type: 'application/json' });
-    const url      = URL.createObjectURL(blob);
-    const a        = document.createElement('a');
-    a.href         = url;
-    a.download     = `mergemind-passport-${passport.id}.json`;
+    const json = serializePassport(passport);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mergemind-passport-${passport.id}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -48,23 +48,25 @@ export function ChangePassportPage() {
 
   return (
     <div className="fade-in no-print-chrome" style={{ maxWidth: 900, margin: '0 auto' }}>
-
       {/* ══════════════════════════════════════════════════════════════
           PAGE HEADER (hidden in print)
       ══════════════════════════════════════════════════════════════ */}
-      <div className="print-hide" style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: 'var(--sp-6)',
-        marginBottom: 'var(--sp-5)',
-        flexWrap: 'wrap',
-      }}>
+      <div
+        className="print-hide"
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 'var(--sp-6)',
+          marginBottom: 'var(--sp-5)',
+          flexWrap: 'wrap',
+        }}
+      >
         <div>
           <h2 style={{ marginBottom: 4 }}>Change Passport</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Permanent verification artifact. Serialisable so future developers and AI agents
-            can read what changed, why, and what must remain true.
+            Permanent verification artifact. Serialisable so future developers and AI agents can
+            read what changed, why, and what must remain true.
           </p>
         </div>
         <div className="row gap-2">
@@ -84,11 +86,16 @@ export function ChangePassportPage() {
           VARIANT SELECTOR (hidden in print)
       ══════════════════════════════════════════════════════════════ */}
       <div className="print-hide" style={{ marginBottom: 'var(--sp-5)' }}>
-        <div style={{
-          fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-          letterSpacing: '0.08em', color: 'var(--text-muted)',
-          marginBottom: 'var(--sp-2)',
-        }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            color: 'var(--text-muted)',
+            marginBottom: 'var(--sp-2)',
+          }}
+        >
           Demo variant
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
@@ -106,16 +113,12 @@ export function ChangePassportPage() {
       {/* ══════════════════════════════════════════════════════════════
           PASSPORT CARD
       ══════════════════════════════════════════════════════════════ */}
-      <PassportCard
-        passport={passport}
-        onInspectConflict={handleInspectConflict}
-      />
+      <PassportCard passport={passport} onInspectConflict={handleInspectConflict} />
 
       {/* ══════════════════════════════════════════════════════════════
           JSON PREVIEW (print-hide, collapsible)
       ══════════════════════════════════════════════════════════════ */}
       <JsonPreview passport={passport} onExport={handleExport} />
-
     </div>
   );
 }
@@ -125,7 +128,9 @@ export function ChangePassportPage() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function VariantTab({
-  variant, isActive, onClick,
+  variant,
+  isActive,
+  onClick,
 }: {
   variant: PassportVariant;
   isActive: boolean;
@@ -133,54 +138,51 @@ function VariantTab({
 }) {
   const p = variant.passport;
   const statusColor =
-    p.status === 'PASS'    ? 'var(--pass)'       :
-    p.status === 'FAIL'    ? 'var(--high)'        :
-                             'var(--text-muted)';
+    p.status === 'PASS' ? 'var(--pass)' : p.status === 'FAIL' ? 'var(--high)' : 'var(--text-muted)';
   const borderColor =
-    isActive && p.status === 'PASS'    ? 'var(--low-border)'    :
-    isActive && p.status === 'FAIL'    ? 'var(--high-border)'   :
-    isActive                           ? 'var(--border)'        :
-                                         'var(--border-2)';
+    isActive && p.status === 'PASS'
+      ? 'var(--low-border)'
+      : isActive && p.status === 'FAIL'
+        ? 'var(--high-border)'
+        : isActive
+          ? 'var(--border)'
+          : 'var(--border-2)';
 
   return (
     <button
       onClick={onClick}
       style={{
-        display:        'flex',
-        flexDirection:  'column',
-        gap:            3,
-        padding:        '9px 16px',
-        background:     isActive ? 'var(--surface-2)' : 'var(--surface)',
-        border:         `1px solid ${borderColor}`,
-        borderRadius:   'var(--radius)',
-        cursor:         'pointer',
-        textAlign:      'left',
-        transition:     'border-color 0.15s',
-        minWidth:       150,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 3,
+        padding: '9px 16px',
+        background: isActive ? 'var(--surface-2)' : 'var(--surface)',
+        border: `1px solid ${borderColor}`,
+        borderRadius: 'var(--radius)',
+        cursor: 'pointer',
+        textAlign: 'left',
+        transition: 'border-color 0.15s',
+        minWidth: 150,
       }}
     >
-      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
-        {variant.label}
-      </span>
-      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-        {variant.sublabel}
-      </span>
-      <span style={{
-        fontSize: 9, fontWeight: 700, color: statusColor,
-        textTransform: 'uppercase', letterSpacing: '0.08em',
-      }}>
+      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{variant.label}</span>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{variant.sublabel}</span>
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: 700,
+          color: statusColor,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+        }}
+      >
         {p.status}
       </span>
     </button>
   );
 }
 
-function JsonPreview({
-  passport, onExport,
-}: {
-  passport: ChangePassport;
-  onExport: () => void;
-}) {
+function JsonPreview({ passport, onExport }: { passport: ChangePassport; onExport: () => void }) {
   const [open, setOpen] = useState(false);
   const json = serializePassport(passport);
 
@@ -191,7 +193,9 @@ function JsonPreview({
         className="btn btn-ghost"
         style={{ fontSize: 12, width: '100%', justifyContent: 'space-between' }}
       >
-        <span>{ open ? '▾' : '▸' } Serialized JSON ({json.length.toLocaleString()} chars)</span>
+        <span>
+          {open ? '▾' : '▸'} Serialized JSON ({json.length.toLocaleString()} chars)
+        </span>
         <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
           schema: mergemind/change-passport/v1
         </span>
@@ -204,19 +208,21 @@ function JsonPreview({
               ↓ Download .json
             </button>
           </div>
-          <pre style={{
-            background:   'var(--surface-2)',
-            border:       '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            padding:      'var(--sp-4)',
-            fontSize:     11.5,
-            fontFamily:   'var(--mono)',
-            color:        'var(--text)',
-            lineHeight:   1.6,
-            overflowX:    'auto',
-            maxHeight:    400,
-            whiteSpace:   'pre',
-          }}>
+          <pre
+            style={{
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              padding: 'var(--sp-4)',
+              fontSize: 11.5,
+              fontFamily: 'var(--mono)',
+              color: 'var(--text)',
+              lineHeight: 1.6,
+              overflowX: 'auto',
+              maxHeight: 400,
+              whiteSpace: 'pre',
+            }}
+          >
             {json}
           </pre>
         </div>

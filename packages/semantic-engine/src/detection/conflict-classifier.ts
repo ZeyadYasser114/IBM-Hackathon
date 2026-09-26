@@ -18,9 +18,9 @@
  * placeholder values that get overridden by the report builder.
  */
 
-import { NormalizedAssumption } from "../normalization/evidence-anchor";
-import { ConflictType, Confidence, Severity } from "../types/enums"; // Severity/Confidence used in ClassificationResult interface
-import { assignSeverityAndConfidence } from "./severity-rules";
+import { NormalizedAssumption } from '../normalization/evidence-anchor';
+import { ConflictType, Confidence, Severity } from '../types/enums'; // Severity/Confidence used in ClassificationResult interface
+import { assignSeverityAndConfidence } from './severity-rules';
 
 // ---------------------------------------------------------------------------
 // Classification result
@@ -43,7 +43,7 @@ export interface ClassificationResult {
  * Returns null when the predicate has no value part.
  */
 function extractValue(canonicalPredicate: string): string | null {
-  const eqIdx = canonicalPredicate.indexOf("=");
+  const eqIdx = canonicalPredicate.indexOf('=');
   if (eqIdx === -1) return null;
   const value = canonicalPredicate.slice(eqIdx + 1).trim();
   return value.length > 0 ? value : null;
@@ -53,10 +53,8 @@ function extractValue(canonicalPredicate: string): string | null {
  * Extracts the key part from a canonical predicate of the form "key = value".
  */
 function extractKey(canonicalPredicate: string): string {
-  const eqIdx = canonicalPredicate.indexOf("=");
-  return eqIdx === -1
-    ? canonicalPredicate.trim()
-    : canonicalPredicate.slice(0, eqIdx).trim();
+  const eqIdx = canonicalPredicate.indexOf('=');
+  return eqIdx === -1 ? canonicalPredicate.trim() : canonicalPredicate.slice(0, eqIdx).trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +68,7 @@ function extractKey(canonicalPredicate: string): string {
  */
 function hasSameKeyDifferentValue(
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): boolean {
   const leftKey = extractKey(left.canonicalPredicate);
   const rightKey = extractKey(right.canonicalPredicate);
@@ -88,16 +86,12 @@ function hasSameKeyDifferentValue(
  * Returns true when the predicates are the same key but one is "true"
  * and the other is "false" — the classic required-vs-optional conflict.
  */
-function isBooleanFlip(
-  left: NormalizedAssumption,
-  right: NormalizedAssumption
-): boolean {
+function isBooleanFlip(left: NormalizedAssumption, right: NormalizedAssumption): boolean {
   const leftVal = extractValue(left.canonicalPredicate);
   const rightVal = extractValue(right.canonicalPredicate);
   if (leftVal === null || rightVal === null) return false;
   return (
-    (leftVal === "true" && rightVal === "false") ||
-    (leftVal === "false" && rightVal === "true")
+    (leftVal === 'true' && rightVal === 'false') || (leftVal === 'false' && rightVal === 'true')
   );
 }
 
@@ -112,7 +106,7 @@ function isRoleSubject(subject: string): boolean {
  * Returns true when the predicate key is role-related.
  */
 function isRolePredicate(key: string): boolean {
-  return key === "required_role" || key === "role";
+  return key === 'required_role' || key === 'role';
 }
 
 /**
@@ -151,7 +145,7 @@ function isDependencyPredicate(key: string): boolean {
  */
 function classifyBusinessRule(
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): ClassificationResult | null {
   if (!hasSameKeyDifferentValue(left, right)) return null;
 
@@ -165,7 +159,11 @@ function classifyBusinessRule(
   if (!isRole && !isRule) return null;
 
   const entity = left.canonicalSubject;
-  const { severity, confidence } = assignSeverityAndConfidence(ConflictType.BUSINESS_RULE, left, right);
+  const { severity, confidence } = assignSeverityAndConfidence(
+    ConflictType.BUSINESS_RULE,
+    left,
+    right,
+  );
 
   return {
     conflictType: ConflictType.BUSINESS_RULE,
@@ -188,7 +186,7 @@ function classifyBusinessRule(
  */
 function classifyContract(
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): ClassificationResult | null {
   if (!hasSameKeyDifferentValue(left, right)) return null;
 
@@ -221,7 +219,7 @@ function classifyContract(
  */
 function classifyDependency(
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): ClassificationResult | null {
   if (!hasSameKeyDifferentValue(left, right)) return null;
 
@@ -231,8 +229,12 @@ function classifyDependency(
 
   const entity = left.canonicalSubject;
   const leftVal = extractValue(left.canonicalPredicate)!;
-  const madeOptional = leftVal === "false";
-  const { severity, confidence } = assignSeverityAndConfidence(ConflictType.DEPENDENCY, left, right);
+  const madeOptional = leftVal === 'false';
+  const { severity, confidence } = assignSeverityAndConfidence(
+    ConflictType.DEPENDENCY,
+    left,
+    right,
+  );
 
   return {
     conflictType: ConflictType.DEPENDENCY,
@@ -253,7 +255,7 @@ function classifyDependency(
 
 type Classifier = (
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ) => ClassificationResult | null;
 
 const CLASSIFIERS: readonly Classifier[] = [
@@ -275,7 +277,7 @@ const CLASSIFIERS: readonly Classifier[] = [
  */
 export function classify(
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): ClassificationResult | null {
   for (const classifier of CLASSIFIERS) {
     const result = classifier(left, right) ?? classifier(right, left);

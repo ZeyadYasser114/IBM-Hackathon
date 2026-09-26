@@ -12,10 +12,10 @@
  *  - stamp confirmedAt
  */
 
-import { SemanticConflict } from "../types/conflict";
-import { EvidenceReference } from "../types/evidence";
-import { NormalizedAssumption } from "../normalization/evidence-anchor";
-import { ClassificationResult } from "./conflict-classifier";
+import { SemanticConflict } from '../types/conflict';
+import { EvidenceReference } from '../types/evidence';
+import { NormalizedAssumption } from '../normalization/evidence-anchor';
+import { ClassificationResult } from './conflict-classifier';
 
 // ---------------------------------------------------------------------------
 // Deterministic id
@@ -25,15 +25,9 @@ import { ClassificationResult } from "./conflict-classifier";
  * Builds a stable conflict id from the two assumption ids and the conflict type.
  * Sorts the ids so left/right ordering does not affect the result.
  */
-function buildConflictId(
-  leftId: string,
-  rightId: string,
-  conflictType: string
-): string {
+function buildConflictId(leftId: string, rightId: string, conflictType: string): string {
   const [a, b] = [leftId, rightId].sort();
-  const slug = `${conflictType}__${a}__${b}`
-    .replace(/[^a-z0-9_]+/gi, "_")
-    .toLowerCase();
+  const slug = `${conflictType}__${a}__${b}`.replace(/[^a-z0-9_]+/gi, '_').toLowerCase();
   return `conflict_${slug}`;
 }
 
@@ -43,7 +37,7 @@ function buildConflictId(
 
 function collectEvidence(
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): EvidenceReference[] {
   const seen = new Set<string>();
   const refs: EvidenceReference[] = [];
@@ -69,7 +63,7 @@ function collectEvidence(
 
 function collectAffectedFiles(
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): string[] | undefined {
   const files: string[] = [];
   if (left.anchor.filePath) files.push(left.anchor.filePath);
@@ -86,13 +80,9 @@ function collectAffectedFiles(
 export function buildConflict(
   left: NormalizedAssumption,
   right: NormalizedAssumption,
-  classification: ClassificationResult
+  classification: ClassificationResult,
 ): SemanticConflict {
-  const id = buildConflictId(
-    left.raw.id,
-    right.raw.id,
-    classification.conflictType
-  );
+  const id = buildConflictId(left.raw.id, right.raw.id, classification.conflictType);
 
   const evidenceReferences = collectEvidence(left, right);
   const affectedFiles = collectAffectedFiles(left, right);

@@ -18,12 +18,11 @@ const CONFLICT = SCENARIO_OWNER_ADMIN.conflicts[0]!;
 
 export function DemoConflictGraph() {
   const demo = useDemoMode();
-  const isHighlightStep = demo.currentStep.id === 'highlight' ||
-                          demo.currentStep.id === 'detail';
+  const isHighlightStep = demo.currentStep.id === 'highlight' || demo.currentStep.id === 'detail';
 
   // Auto-highlight conflict after a short delay on step 4
   const [selectedId, setSelectedId] = useState<string | undefined>(
-    isHighlightStep ? DEMO_CONFLICT_ID : undefined
+    isHighlightStep ? DEMO_CONFLICT_ID : undefined,
   );
 
   useEffect(() => {
@@ -54,15 +53,21 @@ export function DemoConflictGraph() {
       </div>
 
       {/* ── Git vs MergeMind strip ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr',
-        gap: 'var(--sp-4)', marginBottom: 'var(--sp-5)' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 'var(--sp-4)',
+          marginBottom: 'var(--sp-5)',
+        }}
+      >
         <VerdictStrip
           icon="⎇"
           label="Git verdict"
           items={[
-            { text: 'Merge: no conflicts',    pass: true },
-            { text: '42/42 tests passing',    pass: true },
-            { text: 'Code compiles',          pass: true },
+            { text: 'Merge: no conflicts', pass: true },
+            { text: '42/42 tests passing', pass: true },
+            { text: 'Code compiles', pass: true },
           ]}
           dim
         />
@@ -70,9 +75,9 @@ export function DemoConflictGraph() {
           icon="🧠"
           label="MergeMind verdict"
           items={[
-            { text: 'Semantic: CONFLICT FOUND',             pass: false },
+            { text: 'Semantic: CONFLICT FOUND', pass: false },
             { text: 'Subscription management inaccessible', pass: false },
-            { text: 'role="owner" ≠ role="admin"',          pass: false },
+            { text: 'role="owner" ≠ role="admin"', pass: false },
           ]}
         />
       </div>
@@ -117,8 +122,14 @@ export function DemoConflictGraph() {
             <div className="stack gap-1">
               <div className="row gap-2">
                 <SeverityBadge severity={CONFLICT.severity} />
-                <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--mono)',
-                  textTransform: 'uppercase' }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-dim)',
+                    fontFamily: 'var(--mono)',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   BUSINESS RULE
                 </span>
               </div>
@@ -129,8 +140,7 @@ export function DemoConflictGraph() {
                 "{CONFLICT.assumptionA.statement}" ≠ "{CONFLICT.assumptionB.statement}"
               </p>
             </div>
-            <span style={{ color: 'var(--high)', fontSize: 14, fontWeight: 700,
-              flexShrink: 0 }}>
+            <span style={{ color: 'var(--high)', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
               Inspect evidence →
             </span>
           </div>
@@ -142,19 +152,33 @@ export function DemoConflictGraph() {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function VerdictStrip({ icon, label, items, dim }: {
-  icon: string; label: string;
+function VerdictStrip({
+  icon,
+  label,
+  items,
+  dim,
+}: {
+  icon: string;
+  label: string;
   items: { text: string; pass: boolean }[];
   dim?: boolean;
 }) {
   return (
-    <div className="card-sm" style={{
-      borderColor: dim ? 'var(--border)' : 'var(--high-border)',
-      background:  dim ? 'var(--surface)' : 'var(--high-bg)',
-    }}>
+    <div
+      className="card-sm"
+      style={{
+        borderColor: dim ? 'var(--border)' : 'var(--high-border)',
+        background: dim ? 'var(--surface)' : 'var(--high-bg)',
+      }}
+    >
       <div className="row gap-2" style={{ marginBottom: 'var(--sp-3)' }}>
-        <span style={{ fontWeight: 600, fontSize: 12,
-          color: dim ? 'var(--text-muted)' : 'var(--high)' }}>
+        <span
+          style={{
+            fontWeight: 600,
+            fontSize: 12,
+            color: dim ? 'var(--text-muted)' : 'var(--high)',
+          }}
+        >
           {icon} {label}
         </span>
       </div>

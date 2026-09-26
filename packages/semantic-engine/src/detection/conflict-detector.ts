@@ -16,13 +16,13 @@
  * (modulo the confirmedAt timestamp, which callers may override for tests).
  */
 
-import { SemanticConflict } from "../types/conflict";
-import { Severity } from "../types/enums";
-import { NormalizedAssumption } from "../normalization/evidence-anchor";
-import { classify } from "./conflict-classifier";
-import { buildConflict } from "./conflict-builder";
-import { buildReport } from "./report-builder";
-import { ConflictReport } from "./conflict-report";
+import { SemanticConflict } from '../types/conflict';
+import { Severity } from '../types/enums';
+import { NormalizedAssumption } from '../normalization/evidence-anchor';
+import { classify } from './conflict-classifier';
+import { buildConflict } from './conflict-builder';
+import { buildReport } from './report-builder';
+import { ConflictReport } from './conflict-report';
 
 // ---------------------------------------------------------------------------
 // Severity ordering for deterministic sort
@@ -40,7 +40,7 @@ const SEVERITY_RANK: Record<Severity, number> = {
 // ---------------------------------------------------------------------------
 
 function groupBySubject(
-  assumptions: readonly NormalizedAssumption[]
+  assumptions: readonly NormalizedAssumption[],
 ): Map<string, NormalizedAssumption[]> {
   const groups = new Map<string, NormalizedAssumption[]>();
   for (const assumption of assumptions) {
@@ -121,9 +121,7 @@ function deterministicSort(conflicts: SemanticConflict[]): SemanticConflict[] {
  * @returns A deduplicated, deterministically ordered array of SemanticConflicts.
  *          Returns an empty array when no conflicts are found.
  */
-export function detectConflicts(
-  assumptions: readonly NormalizedAssumption[]
-): SemanticConflict[] {
+export function detectConflicts(assumptions: readonly NormalizedAssumption[]): SemanticConflict[] {
   if (assumptions.length < 2) return [];
 
   const groups = groupBySubject(assumptions);
@@ -152,9 +150,7 @@ export function detectConflicts(
  * @param assumptions - Output of normalizeAssumptions(). May be empty.
  * @returns ConflictReport[], deduplicated, sorted by severity then id.
  */
-export function explainConflicts(
-  assumptions: readonly NormalizedAssumption[]
-): ConflictReport[] {
+export function explainConflicts(assumptions: readonly NormalizedAssumption[]): ConflictReport[] {
   if (assumptions.length < 2) return [];
 
   const groups = groupBySubject(assumptions);

@@ -7,28 +7,28 @@
  */
 
 export enum ConflictType {
-  BUSINESS_RULE = "BUSINESS_RULE",
-  CONTRACT = "CONTRACT",
-  DEPENDENCY = "DEPENDENCY",
+  BUSINESS_RULE = 'BUSINESS_RULE',
+  CONTRACT = 'CONTRACT',
+  DEPENDENCY = 'DEPENDENCY',
 }
 
 export enum Severity {
-  HIGH = "HIGH",
-  MEDIUM = "MEDIUM",
-  LOW = "LOW",
-  INFO = "INFO",
+  HIGH = 'HIGH',
+  MEDIUM = 'MEDIUM',
+  LOW = 'LOW',
+  INFO = 'INFO',
 }
 
 export enum Confidence {
-  HIGH = "HIGH",
-  MEDIUM = "MEDIUM",
-  LOW = "LOW",
+  HIGH = 'HIGH',
+  MEDIUM = 'MEDIUM',
+  LOW = 'LOW',
 }
 
 export enum SourceType {
-  REQUIREMENT = "REQUIREMENT",
-  CODE_DIFF = "CODE_DIFF",
-  FILE_SNIPPET = "FILE_SNIPPET",
-  DOCUMENTATION = "DOCUMENTATION",
-  TEST = "TEST",
+  REQUIREMENT = 'REQUIREMENT',
+  CODE_DIFF = 'CODE_DIFF',
+  FILE_SNIPPET = 'FILE_SNIPPET',
+  DOCUMENTATION = 'DOCUMENTATION',
+  TEST = 'TEST',
 }

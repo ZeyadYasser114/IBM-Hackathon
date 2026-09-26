@@ -12,8 +12,8 @@
  * The shape can be round-tripped through JSON without loss.
  */
 
-import { ConflictType, Severity, Confidence } from "../types/enums";
-import { EvidenceReference } from "../types/evidence";
+import { ConflictType, Severity, Confidence } from '../types/enums';
+import { EvidenceReference } from '../types/evidence';
 
 // ---------------------------------------------------------------------------
 // EvidenceSide

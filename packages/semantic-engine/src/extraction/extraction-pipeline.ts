@@ -4,11 +4,11 @@
  * ExtractionPipeline — orchestrates assumption extraction for a full AnalysisInput.
  */
 
-import { AnalysisInput, ChangeDescription, FileSnippet } from "../types/input";
-import { SemanticAssumption } from "../types/assumption";
-import { AssumptionExtractorProvider, ExtractionUnit } from "./extractor-provider";
-import { AssumptionCategory } from "./assumption-category";
-import { SourceType } from "../types/enums";
+import { AnalysisInput, ChangeDescription, FileSnippet } from '../types/input';
+import { SemanticAssumption } from '../types/assumption';
+import { AssumptionExtractorProvider, ExtractionUnit } from './extractor-provider';
+import { AssumptionCategory } from './assumption-category';
+import { SourceType } from '../types/enums';
 
 export interface PipelineExtractionResult {
   readonly assumptions: readonly SemanticAssumption[];
@@ -22,7 +22,8 @@ function guessCategoryHint(label: string, sourceType: SourceType): AssumptionCat
     return AssumptionCategory.BUSINESS_RULE;
   }
   if (/auth|role|permission|login|access/.test(l)) return AssumptionCategory.AUTHORIZATION;
-  if (/api|contract|endpoint|response|request|field|payload/.test(l)) return AssumptionCategory.CONTRACT;
+  if (/api|contract|endpoint|response|request|field|payload/.test(l))
+    return AssumptionCategory.CONTRACT;
   if (/schema|model|database|db|migration|column|table/.test(l)) return AssumptionCategory.SCHEMA;
   if (/depend|service|notif|email|send|import|inject/.test(l)) return AssumptionCategory.DEPENDENCY;
   if (/billing|payment|subscription|invoice/.test(l)) return AssumptionCategory.BUSINESS_RULE;
@@ -31,9 +32,9 @@ function guessCategoryHint(label: string, sourceType: SourceType): AssumptionCat
 
 function requirementUnit(input: AnalysisInput): ExtractionUnit {
   return {
-    unitId: "requirement",
+    unitId: 'requirement',
     text: input.requirementText,
-    categoryHint: guessCategoryHint("requirement", SourceType.REQUIREMENT),
+    categoryHint: guessCategoryHint('requirement', SourceType.REQUIREMENT),
   };
 }
 

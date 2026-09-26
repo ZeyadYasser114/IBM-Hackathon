@@ -14,14 +14,16 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 
-import { DeterministicExtractor } from '@mergemind/semantic-engine/extraction/deterministic-extractor';
-import { ExtractionPipeline } from '@mergemind/semantic-engine/extraction/extraction-pipeline';
-import { normalizeAssumptions } from '@mergemind/semantic-engine/normalization/normalization-pipeline';
-import { detectConflicts, explainConflicts } from '@mergemind/semantic-engine/detection/conflict-detector';
-import { AnalysisStatus } from '@mergemind/semantic-engine/types/result';
-import type { AnalysisInput } from '@mergemind/semantic-engine/types/input';
-import type { SemanticAnalysisResult } from '@mergemind/semantic-engine/types/result';
-import { SourceType } from '@mergemind/semantic-engine/types/enums';
+import {
+  DeterministicExtractor,
+  ExtractionPipeline,
+  normalizeAssumptions,
+  detectConflicts,
+  explainConflicts,
+  AnalysisStatus,
+  SourceType,
+} from '@mergemind/semantic-engine';
+import type { AnalysisInput, SemanticAnalysisResult } from '@mergemind/semantic-engine';
 
 // ── Types for the HTTP API ────────────────────────────────────────────────────
 
@@ -204,11 +206,11 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
 
 function formatSession(session: SessionRecord) {
   const base = {
-    id:          session.id,
-    status:      session.status,
-    startedAt:   session.startedAt,
+    id: session.id,
+    status: session.status,
+    startedAt: session.startedAt,
     completedAt: session.completedAt ?? null,
-    input:       session.input,
+    input: session.input,
   };
 
   if (session.status === 'ERROR') {
@@ -221,18 +223,18 @@ function formatSession(session: SessionRecord) {
   return {
     ...base,
     result: {
-      status:              r.status,
-      summary:             r.summary,
-      assumptionsFound:    r.assumptions.length,
-      conflictsFound:      r.conflicts.length,
+      status: r.status,
+      summary: r.summary,
+      assumptionsFound: r.assumptions.length,
+      conflictsFound: r.conflicts.length,
       conflicts: r.conflicts.map((c) => ({
-        id:               c.id,
-        conflictType:     c.conflictType,
-        severity:         c.severity,
-        confidence:       c.confidence,
-        explanation:      c.explanation,
-        affectedEntity:   c.affectedEntity,
-        affectedFiles:    c.affectedFiles ?? [],
+        id: c.id,
+        conflictType: c.conflictType,
+        severity: c.severity,
+        confidence: c.confidence,
+        explanation: c.explanation,
+        affectedEntity: c.affectedEntity,
+        affectedFiles: c.affectedFiles ?? [],
       })),
       warnings: r.warnings ?? [],
     },

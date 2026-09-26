@@ -7,17 +7,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "dist",
+    "rootDir": "src",
     "declaration": false,
     "sourceMap": true,
-    "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@mergemind/semantic-engine": ["../../packages/semantic-engine/src/index.ts"],
-      "@mergemind/semantic-engine/*": ["../../packages/semantic-engine/src/*"]
-    }
+    "resolveJsonModule": true
   },
-  "include": [
-    "src/**/*",
-    "../../packages/semantic-engine/src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

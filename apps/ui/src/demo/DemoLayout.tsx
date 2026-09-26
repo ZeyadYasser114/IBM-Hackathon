@@ -14,7 +14,9 @@ interface DemoLayoutProps {
 export function DemoLayout({ children }: DemoLayoutProps) {
   return (
     <>
-      <div style={{ paddingBottom: 68 }}>  {/* 52px bar + 16px gap */}
+      <div style={{ paddingBottom: 68 }}>
+        {' '}
+        {/* 52px bar + 16px gap */}
         {children}
       </div>
       <DemoBar />

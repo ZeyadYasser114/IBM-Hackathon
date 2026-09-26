@@ -26,8 +26,8 @@
  *            was inferred rather than directly stated.
  */
 
-import { ConflictType, Severity, Confidence, SourceType } from "../types/enums";
-import { NormalizedAssumption } from "../normalization/evidence-anchor";
+import { ConflictType, Severity, Confidence, SourceType } from '../types/enums';
+import { NormalizedAssumption } from '../normalization/evidence-anchor';
 
 // ---------------------------------------------------------------------------
 // Evidence quality scoring
@@ -59,10 +59,7 @@ function evidenceQuality(assumption: NormalizedAssumption): 0 | 1 | 2 {
  * Combined evidence quality of a pair: min of the two sides.
  * A conflict is only as strong as its weakest side.
  */
-function pairQuality(
-  left: NormalizedAssumption,
-  right: NormalizedAssumption
-): 0 | 1 | 2 {
+function pairQuality(left: NormalizedAssumption, right: NormalizedAssumption): 0 | 1 | 2 {
   return Math.min(evidenceQuality(left), evidenceQuality(right)) as 0 | 1 | 2;
 }
 
@@ -77,15 +74,12 @@ function pairQuality(
  *
  * A direct contradiction increases confidence.
  */
-function isDirectContradiction(
-  left: NormalizedAssumption,
-  right: NormalizedAssumption
-): boolean {
+function isDirectContradiction(left: NormalizedAssumption, right: NormalizedAssumption): boolean {
   const leftPred = left.canonicalPredicate;
   const rightPred = right.canonicalPredicate;
 
-  const eqL = leftPred.indexOf("=");
-  const eqR = rightPred.indexOf("=");
+  const eqL = leftPred.indexOf('=');
+  const eqR = rightPred.indexOf('=');
   if (eqL === -1 || eqR === -1) return false;
 
   const leftVal = leftPred.slice(eqL + 1).trim();
@@ -93,8 +87,8 @@ function isDirectContradiction(
 
   // Boolean flip
   if (
-    (leftVal === "true" && rightVal === "false") ||
-    (leftVal === "false" && rightVal === "true")
+    (leftVal === 'true' && rightVal === 'false') ||
+    (leftVal === 'false' && rightVal === 'true')
   ) {
     return true;
   }
@@ -131,7 +125,7 @@ export interface SeverityRuling {
 export function assignSeverityAndConfidence(
   conflictType: ConflictType,
   left: NormalizedAssumption,
-  right: NormalizedAssumption
+  right: NormalizedAssumption,
 ): SeverityRuling {
   const quality = pairQuality(left, right);
   const direct = isDirectContradiction(left, right);
@@ -144,43 +138,42 @@ export function assignSeverityAndConfidence(
   if (conflictType === ConflictType.BUSINESS_RULE) {
     const isAuthRelated =
       /role|permission|access|auth/.test(left.canonicalSubject) ||
-      left.canonicalPredicate.includes("required_role");
+      left.canonicalPredicate.includes('required_role');
 
     if (isAuthRelated && direct) {
       severity = Severity.HIGH;
-      severityRule = "BUSINESS_RULE:auth_contradiction";
+      severityRule = 'BUSINESS_RULE:auth_contradiction';
     } else if (isAuthRelated) {
       severity = Severity.MEDIUM;
-      severityRule = "BUSINESS_RULE:auth_indirect";
+      severityRule = 'BUSINESS_RULE:auth_indirect';
     } else {
       severity = Severity.MEDIUM;
-      severityRule = "BUSINESS_RULE:general_rule_contradiction";
+      severityRule = 'BUSINESS_RULE:general_rule_contradiction';
     }
   } else if (conflictType === ConflictType.CONTRACT) {
-    const bothHaveFiles =
-      left.anchor.filePath !== undefined && right.anchor.filePath !== undefined;
+    const bothHaveFiles = left.anchor.filePath !== undefined && right.anchor.filePath !== undefined;
 
     if (bothHaveFiles && quality >= 2) {
       severity = Severity.HIGH;
-      severityRule = "CONTRACT:both_files_confirmed";
+      severityRule = 'CONTRACT:both_files_confirmed';
     } else if (quality >= 1) {
       severity = Severity.MEDIUM;
-      severityRule = "CONTRACT:one_side_confirmed";
+      severityRule = 'CONTRACT:one_side_confirmed';
     } else {
       severity = Severity.LOW;
-      severityRule = "CONTRACT:weak_evidence";
+      severityRule = 'CONTRACT:weak_evidence';
     }
   } else {
     // DEPENDENCY
     if (direct && quality >= 2) {
       severity = Severity.HIGH;
-      severityRule = "DEPENDENCY:boolean_flip_confirmed";
+      severityRule = 'DEPENDENCY:boolean_flip_confirmed';
     } else if (direct) {
       severity = Severity.MEDIUM;
-      severityRule = "DEPENDENCY:boolean_flip_partial_evidence";
+      severityRule = 'DEPENDENCY:boolean_flip_partial_evidence';
     } else {
       severity = Severity.LOW;
-      severityRule = "DEPENDENCY:indirect";
+      severityRule = 'DEPENDENCY:indirect';
     }
   }
 
@@ -191,19 +184,19 @@ export function assignSeverityAndConfidence(
 
   if (direct && quality === 2) {
     confidence = Confidence.HIGH;
-    confidenceRule = "direct_contradiction_with_file_evidence";
+    confidenceRule = 'direct_contradiction_with_file_evidence';
   } else if (direct && quality >= 1) {
     confidence = Confidence.MEDIUM;
-    confidenceRule = "direct_contradiction_moderate_evidence";
+    confidenceRule = 'direct_contradiction_moderate_evidence';
   } else if (quality === 2) {
     confidence = Confidence.MEDIUM;
-    confidenceRule = "file_evidence_indirect_contradiction";
+    confidenceRule = 'file_evidence_indirect_contradiction';
   } else if (quality === 1) {
     confidence = Confidence.LOW;
-    confidenceRule = "moderate_evidence_indirect_contradiction";
+    confidenceRule = 'moderate_evidence_indirect_contradiction';
   } else {
     confidence = Confidence.LOW;
-    confidenceRule = "weak_evidence";
+    confidenceRule = 'weak_evidence';
   }
 
   return { severity, confidence, severityRule, confidenceRule };

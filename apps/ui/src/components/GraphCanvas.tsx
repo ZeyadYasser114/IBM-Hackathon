@@ -40,46 +40,46 @@ interface GraphCanvasProps {
 
 const KIND_STYLE = {
   REQUIREMENT: {
-    fill:    'rgba(59,130,246,0.10)',
-    stroke:  'rgba(59,130,246,0.55)',
-    text:    '#93c5fd',
-    accent:  '#3b82f6',
+    fill: 'rgba(59,130,246,0.10)',
+    stroke: 'rgba(59,130,246,0.55)',
+    text: '#93c5fd',
+    accent: '#3b82f6',
   },
   CHANGE: {
-    fill:    'rgba(63,185,80,0.08)',
-    stroke:  'rgba(63,185,80,0.45)',
-    text:    '#86efac',
-    accent:  '#3fb950',
+    fill: 'rgba(63,185,80,0.08)',
+    stroke: 'rgba(63,185,80,0.45)',
+    text: '#86efac',
+    accent: '#3fb950',
   },
   ASSUMPTION: {
-    fill:    'rgba(227,179,65,0.10)',
-    stroke:  'rgba(227,179,65,0.50)',
-    text:    '#fde68a',
-    accent:  '#e3b341',
+    fill: 'rgba(227,179,65,0.10)',
+    stroke: 'rgba(227,179,65,0.50)',
+    text: '#fde68a',
+    accent: '#e3b341',
   },
   FILE: {
-    fill:    'rgba(22,27,34,0.85)',
-    stroke:  '#3d444d',
-    text:    '#8b949e',
-    accent:  '#484f58',
+    fill: 'rgba(22,27,34,0.85)',
+    stroke: '#3d444d',
+    text: '#8b949e',
+    accent: '#484f58',
   },
   CONFLICT_HIGH: {
-    fill:    'rgba(248,81,73,0.18)',
-    stroke:  '#f85149',
-    text:    '#fca5a5',
-    accent:  '#f85149',
+    fill: 'rgba(248,81,73,0.18)',
+    stroke: '#f85149',
+    text: '#fca5a5',
+    accent: '#f85149',
   },
   CONFLICT_MEDIUM: {
-    fill:    'rgba(227,179,65,0.15)',
-    stroke:  '#e3b341',
-    text:    '#fde68a',
-    accent:  '#e3b341',
+    fill: 'rgba(227,179,65,0.15)',
+    stroke: '#e3b341',
+    text: '#fde68a',
+    accent: '#e3b341',
   },
   CONFLICT_LOW: {
-    fill:    'rgba(63,185,80,0.12)',
-    stroke:  '#3fb950',
-    text:    '#86efac',
-    accent:  '#3fb950',
+    fill: 'rgba(63,185,80,0.12)',
+    stroke: '#3fb950',
+    text: '#86efac',
+    accent: '#3fb950',
   },
 } as const;
 
@@ -89,10 +89,10 @@ const SEVERITY_STROKE_W = { HIGH: 2.2, MEDIUM: 1.6, LOW: 1.2 } as const;
 // Max characters for labels in each kind
 const LABEL_MAX: Record<GraphNode['kind'], number> = {
   REQUIREMENT: 32,
-  CHANGE:      26,
-  ASSUMPTION:  28,
-  FILE:        30,
-  CONFLICT:    22,
+  CHANGE: 26,
+  ASSUMPTION: 28,
+  FILE: 30,
+  CONFLICT: 22,
 };
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -110,7 +110,9 @@ export function GraphCanvas({ graph, onConflictClick, selectedConflictId }: Grap
 
   const nodeSeverityMap = useMemo(() => {
     const m = new Map<string, GraphNode['severity']>();
-    graph.nodes.forEach((n) => { if (n.severity) m.set(n.id, n.severity); });
+    graph.nodes.forEach((n) => {
+      if (n.severity) m.set(n.id, n.severity);
+    });
     return m;
   }, [graph]);
 
@@ -132,12 +134,7 @@ export function GraphCanvas({ graph, onConflictClick, selectedConflictId }: Grap
 
         {/* Edges drawn first (behind nodes) */}
         {graph.edges.map((edge, idx) => (
-          <EdgeLine
-            key={idx}
-            edge={edge}
-            layout={layout}
-            nodeKindMap={nodeKindMap}
-          />
+          <EdgeLine key={idx} edge={edge} layout={layout} nodeKindMap={nodeKindMap} />
         ))}
 
         {/* Nodes */}
@@ -186,10 +183,17 @@ function Defs({ viewWidth }: { viewWidth: number }) {
       </filter>
 
       {/* Subtle row background gradient */}
-      <linearGradient id="bg-row" x1="0" y1="0" x2={viewWidth} y2="0" gradientUnits="userSpaceOnUse">
-        <stop offset="0"   stopColor="rgba(22,27,34,0)" />
+      <linearGradient
+        id="bg-row"
+        x1="0"
+        y1="0"
+        x2={viewWidth}
+        y2="0"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0" stopColor="rgba(22,27,34,0)" />
         <stop offset="0.5" stopColor="rgba(22,27,34,0.4)" />
-        <stop offset="1"   stopColor="rgba(22,27,34,0)" />
+        <stop offset="1" stopColor="rgba(22,27,34,0)" />
       </linearGradient>
     </defs>
   );
@@ -206,7 +210,7 @@ const TIER_LABELS = [
 ];
 
 const ROW_Y_BASE = 40 + NODE_H / 2;
-const ROW_STEP   = NODE_H + 90; // must match layoutEngine ROW_GAP
+const ROW_STEP = NODE_H + 90; // must match layoutEngine ROW_GAP
 
 function TierLabels({ viewWidth }: { viewWidth: number }) {
   return (
@@ -243,11 +247,11 @@ interface EdgeLineProps {
 
 function EdgeLine({ edge, layout, nodeKindMap }: EdgeLineProps) {
   const fromLn = getLayoutNode(layout, edge.from);
-  const toLn   = getLayoutNode(layout, edge.to);
+  const toLn = getLayoutNode(layout, edge.to);
   if (!fromLn || !toLn) return null;
 
   const { x1, y1, x2, y2 } = edgePoints(fromLn, toLn);
-  const toKind   = nodeKindMap.get(edge.to);
+  const toKind = nodeKindMap.get(edge.to);
   const fromKind = nodeKindMap.get(edge.from);
 
   const isConflictEdge = toKind === 'CONFLICT' || fromKind === 'CONFLICT';
@@ -356,21 +360,52 @@ function RequirementNode({ ln, label }: { node: GraphNode; ln: LayoutNode; label
 
   return (
     <g>
-      <rect x={x} y={y} width={ln.width} height={ln.height} rx="9" ry="9"
-        fill={style.fill} stroke={style.stroke} strokeWidth="1.2" />
+      <rect
+        x={x}
+        y={y}
+        width={ln.width}
+        height={ln.height}
+        rx="9"
+        ry="9"
+        fill={style.fill}
+        stroke={style.stroke}
+        strokeWidth="1.2"
+      />
       {/* Accent top bar */}
-      <rect x={x + 1} y={y + 1} width={ln.width - 2} height={5} rx="8" ry="8"
-        fill={style.accent} opacity="0.6" />
+      <rect
+        x={x + 1}
+        y={y + 1}
+        width={ln.width - 2}
+        height={5}
+        rx="8"
+        ry="8"
+        fill={style.accent}
+        opacity="0.6"
+      />
       {/* Kind micro-label */}
-      <text x={ln.x} y={y + 17} textAnchor="middle"
-        fill={style.text} fontSize="8.5" fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif" letterSpacing="0.08em" opacity="0.65">
+      <text
+        x={ln.x}
+        y={y + 17}
+        textAnchor="middle"
+        fill={style.text}
+        fontSize="8.5"
+        fontWeight="700"
+        fontFamily="-apple-system, system-ui, sans-serif"
+        letterSpacing="0.08em"
+        opacity="0.65"
+      >
         REQUIREMENT
       </text>
       {/* Main label */}
-      <text x={ln.x} y={y + 33} textAnchor="middle"
-        fill={style.text} fontSize="12" fontWeight="600"
-        fontFamily="-apple-system, system-ui, sans-serif">
+      <text
+        x={ln.x}
+        y={y + 33}
+        textAnchor="middle"
+        fill={style.text}
+        fontSize="12"
+        fontWeight="600"
+        fontFamily="-apple-system, system-ui, sans-serif"
+      >
         {label}
       </text>
     </g>
@@ -386,16 +421,39 @@ function ChangeNode({ ln, label }: { node: GraphNode; ln: LayoutNode; label: str
 
   return (
     <g>
-      <rect x={x} y={y} width={ln.width} height={ln.height} rx="8" ry="8"
-        fill={style.fill} stroke={style.stroke} strokeWidth="1" />
-      <text x={ln.x} y={y + 16} textAnchor="middle"
-        fill={style.text} fontSize="8.5" fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif" letterSpacing="0.08em" opacity="0.65">
+      <rect
+        x={x}
+        y={y}
+        width={ln.width}
+        height={ln.height}
+        rx="8"
+        ry="8"
+        fill={style.fill}
+        stroke={style.stroke}
+        strokeWidth="1"
+      />
+      <text
+        x={ln.x}
+        y={y + 16}
+        textAnchor="middle"
+        fill={style.text}
+        fontSize="8.5"
+        fontWeight="700"
+        fontFamily="-apple-system, system-ui, sans-serif"
+        letterSpacing="0.08em"
+        opacity="0.65"
+      >
         CHANGE
       </text>
-      <text x={ln.x} y={y + 33} textAnchor="middle"
-        fill={style.text} fontSize="12" fontWeight="600"
-        fontFamily="-apple-system, system-ui, sans-serif">
+      <text
+        x={ln.x}
+        y={y + 33}
+        textAnchor="middle"
+        fill={style.text}
+        fontSize="12"
+        fontWeight="600"
+        fontFamily="-apple-system, system-ui, sans-serif"
+      >
         {label}
       </text>
     </g>
@@ -404,8 +462,15 @@ function ChangeNode({ ln, label }: { node: GraphNode; ln: LayoutNode; label: str
 
 // ── ASSUMPTION node — skewed parallelogram (amber) ────────────────────────────
 
-function AssumptionNode({ ln, label, severity }: {
-  node: GraphNode; ln: LayoutNode; label: string; severity?: GraphNode['severity']
+function AssumptionNode({
+  ln,
+  label,
+  severity,
+}: {
+  node: GraphNode;
+  ln: LayoutNode;
+  label: string;
+  severity?: GraphNode['severity'];
 }) {
   const style = KIND_STYLE.ASSUMPTION;
   const w = ln.width;
@@ -429,14 +494,28 @@ function AssumptionNode({ ln, label, severity }: {
   return (
     <g>
       <polygon points={pts} fill={style.fill} stroke={strokeColor} strokeWidth={strokeW} />
-      <text x={ln.x} y={y + 16} textAnchor="middle"
-        fill={style.text} fontSize="8.5" fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif" letterSpacing="0.08em" opacity="0.65">
+      <text
+        x={ln.x}
+        y={y + 16}
+        textAnchor="middle"
+        fill={style.text}
+        fontSize="8.5"
+        fontWeight="700"
+        fontFamily="-apple-system, system-ui, sans-serif"
+        letterSpacing="0.08em"
+        opacity="0.65"
+      >
         ASSUMPTION
       </text>
-      <text x={ln.x} y={y + 33} textAnchor="middle"
-        fill={style.text} fontSize="11.5" fontWeight="600"
-        fontFamily="-apple-system, system-ui, sans-serif">
+      <text
+        x={ln.x}
+        y={y + 33}
+        textAnchor="middle"
+        fill={style.text}
+        fontSize="11.5"
+        fontWeight="600"
+        fontFamily="-apple-system, system-ui, sans-serif"
+      >
         {label}
       </text>
     </g>
@@ -470,9 +549,16 @@ function FileNode({ ln, label }: { node: GraphNode; ln: LayoutNode; label: strin
     <g>
       <path d={docPath} fill={style.fill} stroke={style.stroke} strokeWidth="1" />
       <path d={foldPath} fill="none" stroke={style.stroke} strokeWidth="0.8" />
-      <text x={ln.x - 4} y={y + 18} textAnchor="middle"
-        fill={style.accent} fontSize="8.5" fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif" letterSpacing="0.08em">
+      <text
+        x={ln.x - 4}
+        y={y + 18}
+        textAnchor="middle"
+        fill={style.accent}
+        fontSize="8.5"
+        fontWeight="700"
+        fontFamily="-apple-system, system-ui, sans-serif"
+        letterSpacing="0.08em"
+      >
         FILE
       </text>
       {/* File name — may be long, so we render in two text elements if needed */}
@@ -486,25 +572,43 @@ function FileLabel({ label, cx, cy }: { label: string; cx: number; cy: number })
   const lastSlash = label.lastIndexOf('/');
   if (lastSlash === -1) {
     return (
-      <text x={cx} y={cy} textAnchor="middle"
-        fill={KIND_STYLE.FILE.text} fontSize="10.5" fontWeight="500"
-        fontFamily="var(--mono, monospace)">
+      <text
+        x={cx}
+        y={cy}
+        textAnchor="middle"
+        fill={KIND_STYLE.FILE.text}
+        fontSize="10.5"
+        fontWeight="500"
+        fontFamily="var(--mono, monospace)"
+      >
         {label}
       </text>
     );
   }
-  const dir  = label.slice(0, lastSlash + 1);
+  const dir = label.slice(0, lastSlash + 1);
   const file = label.slice(lastSlash + 1);
   return (
     <g>
-      <text x={cx} y={cy - 7} textAnchor="middle"
-        fill="rgba(139,148,158,0.55)" fontSize="9" fontWeight="400"
-        fontFamily="var(--mono, monospace)">
+      <text
+        x={cx}
+        y={cy - 7}
+        textAnchor="middle"
+        fill="rgba(139,148,158,0.55)"
+        fontSize="9"
+        fontWeight="400"
+        fontFamily="var(--mono, monospace)"
+      >
         {truncateLabel(dir, 28)}
       </text>
-      <text x={cx} y={cy + 5} textAnchor="middle"
-        fill={KIND_STYLE.FILE.text} fontSize="10.5" fontWeight="600"
-        fontFamily="var(--mono, monospace)">
+      <text
+        x={cx}
+        y={cy + 5}
+        textAnchor="middle"
+        fill={KIND_STYLE.FILE.text}
+        fontSize="10.5"
+        fontWeight="600"
+        fontFamily="var(--mono, monospace)"
+      >
         {truncateLabel(file, 28)}
       </text>
     </g>
@@ -523,26 +627,27 @@ interface ConflictNodeProps {
 }
 
 function ConflictNode({ ln, label, severity, isSelected, onClick }: ConflictNodeProps) {
-  const styleKey = severity === 'HIGH'
-    ? 'CONFLICT_HIGH'
-    : severity === 'MEDIUM'
-    ? 'CONFLICT_MEDIUM'
-    : 'CONFLICT_LOW';
+  const styleKey =
+    severity === 'HIGH'
+      ? 'CONFLICT_HIGH'
+      : severity === 'MEDIUM'
+        ? 'CONFLICT_MEDIUM'
+        : 'CONFLICT_LOW';
   const style = KIND_STYLE[styleKey];
 
   // Diamond dimensions
-  const hw = ln.width / 2;  // half-width
+  const hw = ln.width / 2; // half-width
   const hh = ln.height / 2; // half-height
 
   const diamond = [
-    `${ln.x},${ln.y - hh}`,       // top
-    `${ln.x + hw},${ln.y}`,       // right
-    `${ln.x},${ln.y + hh}`,       // bottom
-    `${ln.x - hw},${ln.y}`,       // left
+    `${ln.x},${ln.y - hh}`, // top
+    `${ln.x + hw},${ln.y}`, // right
+    `${ln.x},${ln.y + hh}`, // bottom
+    `${ln.x - hw},${ln.y}`, // left
   ].join(' ');
 
   const strokeW = SEVERITY_STROKE_W[severity];
-  const icon    = SEVERITY_ICON[severity];
+  const icon = SEVERITY_ICON[severity];
 
   return (
     <g
@@ -555,12 +660,7 @@ function ConflictNode({ ln, label, severity, isSelected, onClick }: ConflictNode
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
     >
       {/* Outer diamond */}
-      <polygon
-        points={diamond}
-        fill={style.fill}
-        stroke={style.stroke}
-        strokeWidth={strokeW}
-      />
+      <polygon points={diamond} fill={style.fill} stroke={style.stroke} strokeWidth={strokeW} />
       {/* Pulse ring when selected */}
       {isSelected && (
         <polygon
@@ -574,21 +674,40 @@ function ConflictNode({ ln, label, severity, isSelected, onClick }: ConflictNode
         />
       )}
       {/* Severity icon */}
-      <text x={ln.x} y={ln.y - 10} textAnchor="middle"
-        fill={style.accent} fontSize="13"
-        fontFamily="-apple-system, system-ui, sans-serif">
+      <text
+        x={ln.x}
+        y={ln.y - 10}
+        textAnchor="middle"
+        fill={style.accent}
+        fontSize="13"
+        fontFamily="-apple-system, system-ui, sans-serif"
+      >
         {icon}
       </text>
       {/* Label */}
-      <text x={ln.x} y={ln.y + 6} textAnchor="middle"
-        fill={style.text} fontSize="11" fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif">
+      <text
+        x={ln.x}
+        y={ln.y + 6}
+        textAnchor="middle"
+        fill={style.text}
+        fontSize="11"
+        fontWeight="700"
+        fontFamily="-apple-system, system-ui, sans-serif"
+      >
         {label}
       </text>
       {/* Severity badge text */}
-      <text x={ln.x} y={ln.y + 20} textAnchor="middle"
-        fill={style.accent} fontSize="8.5" fontWeight="700"
-        fontFamily="-apple-system, system-ui, sans-serif" letterSpacing="0.1em" opacity="0.8">
+      <text
+        x={ln.x}
+        y={ln.y + 20}
+        textAnchor="middle"
+        fill={style.accent}
+        fontSize="8.5"
+        fontWeight="700"
+        fontFamily="-apple-system, system-ui, sans-serif"
+        letterSpacing="0.1em"
+        opacity="0.8"
+      >
         {severity} · click to inspect
       </text>
     </g>

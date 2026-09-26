@@ -19,36 +19,36 @@ import { SCENARIO_OWNER_ADMIN } from '@/graph/graphScenarios';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const conflictUnresolved = SCENARIO_OWNER_ADMIN.conflicts[0]!;
-const conflictResolved   = { ...conflictUnresolved, resolved: true };
+const conflictResolved = { ...conflictUnresolved, resolved: true };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. PASS — all conflicts resolved, 43/43 tests, 94% coverage
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PASSPORT_PASS: ChangePassport = {
-  id:          'passport-20240115-002',
+  id: 'passport-20240115-002',
   generatedAt: '2024-01-15T14:47:00Z',
-  sessionId:   'session-demo-001',
-  feature:     'Organization Billing',
-  intent:      'Only organization owners may manage subscriptions.',
-  repository:  'acme-org/platform',
-  branches:    ['feature/auth-roles', 'feature/billing-permissions'],
+  sessionId: 'session-demo-001',
+  feature: 'Organization Billing',
+  intent: 'Only organization owners may manage subscriptions.',
+  repository: 'acme-org/platform',
+  branches: ['feature/auth-roles', 'feature/billing-permissions'],
 
-  filesChanged:        12,
-  components:          ['Authentication', 'Billing', 'Database', 'API'],
+  filesChanged: 12,
+  components: ['Authentication', 'Billing', 'Database', 'API'],
 
-  assumptionsFound:    8,
+  assumptionsFound: 8,
   assumptionsVerified: 8,
-  conflictsFound:      1,
-  conflictsResolved:   1,
+  conflictsFound: 1,
+  conflictsResolved: 1,
 
-  testsTotal:          43,
-  testsPassing:        43,
+  testsTotal: 43,
+  testsPassing: 43,
   requirementCoverage: 94,
 
   remainingRisk: 'Webhook retry behaviour not verified.',
-  status:        'PASS',
-  conflicts:     [conflictResolved],
+  status: 'PASS',
+  conflicts: [conflictResolved],
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,30 +56,30 @@ export const PASSPORT_PASS: ChangePassport = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PASSPORT_FAIL: ChangePassport = {
-  id:          'passport-20240115-001',
+  id: 'passport-20240115-001',
   generatedAt: '2024-01-15T14:32:00Z',
-  sessionId:   'session-demo-001',
-  feature:     'Organization Billing',
-  intent:      'Only organization owners may manage subscriptions.',
-  repository:  'acme-org/platform',
-  branches:    ['feature/auth-roles', 'feature/billing-permissions'],
+  sessionId: 'session-demo-001',
+  feature: 'Organization Billing',
+  intent: 'Only organization owners may manage subscriptions.',
+  repository: 'acme-org/platform',
+  branches: ['feature/auth-roles', 'feature/billing-permissions'],
 
-  filesChanged:        12,
-  components:          ['Authentication', 'Billing', 'Database', 'API'],
+  filesChanged: 12,
+  components: ['Authentication', 'Billing', 'Database', 'API'],
 
-  assumptionsFound:    8,
+  assumptionsFound: 8,
   assumptionsVerified: 7,
-  conflictsFound:      1,
-  conflictsResolved:   0,
+  conflictsFound: 1,
+  conflictsResolved: 0,
 
-  testsTotal:          42,
-  testsPassing:        42,
+  testsTotal: 42,
+  testsPassing: 42,
   requirementCoverage: 87,
 
   remainingRisk:
     'Billing authorization role mismatch unresolved — ' +
     'subscription management is inaccessible for "owner" role.',
-  status:    'FAIL',
+  status: 'FAIL',
   conflicts: [conflictUnresolved],
 };
 
@@ -89,30 +89,30 @@ export const PASSPORT_FAIL: ChangePassport = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PASSPORT_PARTIAL: ChangePassport = {
-  id:          'passport-partial-001',
+  id: 'passport-partial-001',
   generatedAt: '2024-01-15T15:05:00Z',
-  sessionId:   'session-demo-002',
-  feature:     'User Profile Refactor',
-  intent:      'Migrate user profile storage from PostgreSQL to a document store.',
-  repository:  'acme-org/platform',
-  branches:    ['feature/profile-migration'],
+  sessionId: 'session-demo-002',
+  feature: 'User Profile Refactor',
+  intent: 'Migrate user profile storage from PostgreSQL to a document store.',
+  repository: 'acme-org/platform',
+  branches: ['feature/profile-migration'],
 
-  filesChanged:        null,   // not yet determined
-  components:          ['Database', 'API'],
+  filesChanged: null, // not yet determined
+  components: ['Database', 'API'],
 
-  assumptionsFound:    null,   // analysis not run
+  assumptionsFound: null, // analysis not run
   assumptionsVerified: null,
-  conflictsFound:      null,
-  conflictsResolved:   null,
+  conflictsFound: null,
+  conflictsResolved: null,
 
-  testsTotal:          null,   // test suite not yet run
-  testsPassing:        null,
+  testsTotal: null, // test suite not yet run
+  testsPassing: null,
 
-  requirementCoverage: null,   // coverage analysis not run
+  requirementCoverage: null, // coverage analysis not run
 
   remainingRisk: 'Analysis incomplete — not all agents have run.',
-  status:        'PENDING',
-  conflicts:     [],
+  status: 'PENDING',
+  conflicts: [],
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -120,28 +120,28 @@ export const PASSPORT_PARTIAL: ChangePassport = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PassportVariant {
-  id:       string;
-  label:    string;
+  id: string;
+  label: string;
   sublabel: string;
   passport: ChangePassport;
 }
 
 export const PASSPORT_VARIANTS: PassportVariant[] = [
   {
-    id:       'pass',
-    label:    'PASS — resolved',
+    id: 'pass',
+    label: 'PASS — resolved',
     sublabel: 'Conflict fixed, 43/43 tests',
     passport: PASSPORT_PASS,
   },
   {
-    id:       'fail',
-    label:    'FAIL — unresolved',
+    id: 'fail',
+    label: 'FAIL — unresolved',
     sublabel: 'Conflict open, 42/42 tests',
     passport: PASSPORT_FAIL,
   },
   {
-    id:       'partial',
-    label:    'PENDING — partial',
+    id: 'partial',
+    label: 'PENDING — partial',
     sublabel: 'Analysis incomplete',
     passport: PASSPORT_PARTIAL,
   },
@@ -155,35 +155,35 @@ export const PASSPORT_VARIANTS: PassportVariant[] = [
 
 export function serializePassport(passport: ChangePassport): string {
   const json = {
-    schema:   'mergemind/change-passport/v1',
+    schema: 'mergemind/change-passport/v1',
     passport: {
-      id:                  passport.id,
-      generatedAt:         passport.generatedAt,
-      sessionId:           passport.sessionId ?? null,
-      feature:             passport.feature,
-      intent:              passport.intent,
-      repository:          passport.repository ?? null,
-      branches:            passport.branches   ?? null,
-      filesChanged:        passport.filesChanged,
-      components:          passport.components,
-      assumptionsFound:    passport.assumptionsFound,
+      id: passport.id,
+      generatedAt: passport.generatedAt,
+      sessionId: passport.sessionId ?? null,
+      feature: passport.feature,
+      intent: passport.intent,
+      repository: passport.repository ?? null,
+      branches: passport.branches ?? null,
+      filesChanged: passport.filesChanged,
+      components: passport.components,
+      assumptionsFound: passport.assumptionsFound,
       assumptionsVerified: passport.assumptionsVerified,
-      conflictsFound:      passport.conflictsFound,
-      conflictsResolved:   passport.conflictsResolved,
-      testsTotal:          passport.testsTotal,
-      testsPassing:        passport.testsPassing,
+      conflictsFound: passport.conflictsFound,
+      conflictsResolved: passport.conflictsResolved,
+      testsTotal: passport.testsTotal,
+      testsPassing: passport.testsPassing,
       requirementCoverage: passport.requirementCoverage,
-      remainingRisk:       passport.remainingRisk,
-      status:              passport.status,
+      remainingRisk: passport.remainingRisk,
+      status: passport.status,
       conflicts: passport.conflicts.map((c) => ({
-        id:               c.id,
-        kind:             c.kind,
-        severity:         c.severity,
-        confidence:       c.confidence,
-        title:            c.title,
+        id: c.id,
+        kind: c.kind,
+        severity: c.severity,
+        confidence: c.confidence,
+        title: c.title,
         affectedContract: c.affectedContract,
-        affectedFiles:    c.affectedFiles,
-        resolved:         c.resolved,
+        affectedFiles: c.affectedFiles,
+        resolved: c.resolved,
       })),
     },
   };

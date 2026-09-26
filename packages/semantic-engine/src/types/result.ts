@@ -4,15 +4,15 @@
  * SemanticAnalysisResult — the complete output envelope returned by the semantic engine.
  */
 
-import { SemanticAssumption } from "./assumption";
-import { ConflictCandidate } from "./candidate";
-import { SemanticConflict } from "./conflict";
+import { SemanticAssumption } from './assumption';
+import { ConflictCandidate } from './candidate';
+import { SemanticConflict } from './conflict';
 
 export enum AnalysisStatus {
-  PASS = "PASS",
-  CONFLICTS_FOUND = "CONFLICTS_FOUND",
-  PARTIAL = "PARTIAL",
-  ERROR = "ERROR",
+  PASS = 'PASS',
+  CONFLICTS_FOUND = 'CONFLICTS_FOUND',
+  PARTIAL = 'PARTIAL',
+  ERROR = 'ERROR',
 }
 
 export interface SemanticAnalysisResult {
@@ -31,10 +31,8 @@ export function hasConflicts(result: SemanticAnalysisResult): boolean {
   return result.conflicts.length > 0;
 }
 
-export function highSeverityConflicts(
-  result: SemanticAnalysisResult
-): readonly SemanticConflict[] {
-  return result.conflicts.filter((c) => c.severity === "HIGH");
+export function highSeverityConflicts(result: SemanticAnalysisResult): readonly SemanticConflict[] {
+  return result.conflicts.filter((c) => c.severity === 'HIGH');
 }
 
 export function resultSummaryStats(result: SemanticAnalysisResult): {
@@ -47,6 +45,6 @@ export function resultSummaryStats(result: SemanticAnalysisResult): {
     assumptionsExtracted: result.assumptions.length,
     candidatesEvaluated: result.candidates.length,
     conflictsFound: result.conflicts.length,
-    conflictsDismissed: result.candidates.filter((c) => c.status === "DISMISSED").length,
+    conflictsDismissed: result.candidates.filter((c) => c.status === 'DISMISSED').length,
   };
 }

@@ -17,15 +17,13 @@ import type { Conflict, EvidenceExcerpt, Assumption } from '@/types/semantic';
 export function ConflictDetail() {
   const navigate = useNavigate();
   const location = useLocation();
-  const state    = location.state as { conflictId?: string; scenarioIdx?: number } | null;
+  const state = location.state as { conflictId?: string; scenarioIdx?: number } | null;
 
   // ── Resolve the conflict from the correct scenario ────────────────────────
   const scenarioIdx = state?.scenarioIdx ?? 0;
-  const conflictId  = state?.conflictId;
+  const conflictId = state?.conflictId;
   const allConflicts = ALL_SCENARIO_CONFLICTS[scenarioIdx] ?? ALL_SCENARIO_CONFLICTS[0]!;
-  const conflict = conflictId
-    ? allConflicts.find((c) => c.id === conflictId)
-    : undefined;
+  const conflict = conflictId ? allConflicts.find((c) => c.id === conflictId) : undefined;
 
   // ── Resolution state ───────────────────────────────────────────────────────
   const [resolved, setResolved] = useState(false);
@@ -49,15 +47,24 @@ export function ConflictDetail() {
   }
 
   const isHighConfidence = conflict.confidence >= 85;
-  const severityColor = conflict.severity === 'HIGH'
-    ? 'var(--high)' : conflict.severity === 'MEDIUM'
-    ? 'var(--medium)' : 'var(--low)';
-  const severityBorder = conflict.severity === 'HIGH'
-    ? 'var(--high-border)' : conflict.severity === 'MEDIUM'
-    ? 'var(--medium-border)' : 'var(--low-border)';
-  const severityBg = conflict.severity === 'HIGH'
-    ? 'var(--high-bg)' : conflict.severity === 'MEDIUM'
-    ? 'var(--medium-bg)' : 'var(--low-bg)';
+  const severityColor =
+    conflict.severity === 'HIGH'
+      ? 'var(--high)'
+      : conflict.severity === 'MEDIUM'
+        ? 'var(--medium)'
+        : 'var(--low)';
+  const severityBorder =
+    conflict.severity === 'HIGH'
+      ? 'var(--high-border)'
+      : conflict.severity === 'MEDIUM'
+        ? 'var(--medium-border)'
+        : 'var(--low-border)';
+  const severityBg =
+    conflict.severity === 'HIGH'
+      ? 'var(--high-bg)'
+      : conflict.severity === 'MEDIUM'
+        ? 'var(--medium-bg)'
+        : 'var(--low-bg)';
 
   return (
     <div className="fade-in" style={{ maxWidth: 860, margin: '0 auto' }}>
@@ -77,7 +84,9 @@ export function ConflictDetail() {
           <KindBadge kind={conflict.kind} />
           <ConfidenceBadge confidence={conflict.confidence} />
           {resolved && (
-            <span className="badge badge-pass" style={{ marginLeft: 'auto' }}>✓ RESOLVED</span>
+            <span className="badge badge-pass" style={{ marginLeft: 'auto' }}>
+              ✓ RESOLVED
+            </span>
           )}
         </div>
 
@@ -93,16 +102,18 @@ export function ConflictDetail() {
 
         {/* Lower-confidence warning */}
         {!isHighConfidence && (
-          <div style={{
-            marginTop: 'var(--sp-4)',
-            padding: 'var(--sp-3) var(--sp-4)',
-            background: 'rgba(227,179,65,0.08)',
-            border: '1px solid var(--medium-border)',
-            borderRadius: 'var(--radius)',
-            fontSize: 12,
-            color: 'var(--medium)',
-            lineHeight: 1.6,
-          }}>
+          <div
+            style={{
+              marginTop: 'var(--sp-4)',
+              padding: 'var(--sp-3) var(--sp-4)',
+              background: 'rgba(227,179,65,0.08)',
+              border: '1px solid var(--medium-border)',
+              borderRadius: 'var(--radius)',
+              fontSize: 12,
+              color: 'var(--medium)',
+              lineHeight: 1.6,
+            }}
+          >
             <strong>⚡ Lower-confidence finding ({conflict.confidence}%)</strong> — The engine could
             not fully resolve all file paths. One evidence excerpt below is flagged as unresolved.
             Review the verification hint for manual inspection steps.
@@ -114,17 +125,19 @@ export function ConflictDetail() {
           SECTION 2 — Requirement trace (why this conflict matters)
       ═══════════════════════════════════════════════════════════════ */}
       <Section icon="📌" title="Original requirement">
-        <blockquote style={{
-          margin: 0,
-          padding: 'var(--sp-3) var(--sp-4)',
-          background: 'var(--surface-2)',
-          borderLeft: '3px solid var(--accent)',
-          borderRadius: '0 var(--radius) var(--radius) 0',
-          fontSize: 14,
-          color: 'var(--text)',
-          fontStyle: 'italic',
-          lineHeight: 1.6,
-        }}>
+        <blockquote
+          style={{
+            margin: 0,
+            padding: 'var(--sp-3) var(--sp-4)',
+            background: 'var(--surface-2)',
+            borderLeft: '3px solid var(--accent)',
+            borderRadius: '0 var(--radius) var(--radius) 0',
+            fontSize: 14,
+            color: 'var(--text)',
+            fontStyle: 'italic',
+            lineHeight: 1.6,
+          }}
+        >
           {conflict.requirementText}
         </blockquote>
       </Section>
@@ -134,16 +147,18 @@ export function ConflictDetail() {
           What shared thing both sides disagree about
       ═══════════════════════════════════════════════════════════════ */}
       <Section icon="🔗" title="Affected contract">
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--sp-3)',
-          padding: 'var(--sp-3) var(--sp-4)',
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)',
-          fontSize: 13,
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--sp-3)',
+            padding: 'var(--sp-3) var(--sp-4)',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            fontSize: 13,
+          }}
+        >
           <span style={{ fontFamily: 'var(--mono)', color: 'var(--medium)', fontWeight: 600 }}>
             {conflict.affectedContract.split(' (')[0]}
           </span>
@@ -160,7 +175,14 @@ export function ConflictDetail() {
           Side-by-side cards + visual clash bar
       ═══════════════════════════════════════════════════════════════ */}
       <Section icon="⚡" title="Conflicting assumptions">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-4)', marginBottom: 'var(--sp-4)' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 'var(--sp-4)',
+            marginBottom: 'var(--sp-4)',
+          }}
+        >
           <AssumptionCard
             assumption={conflict.assumptionA}
             label="Change A"
@@ -213,15 +235,17 @@ export function ConflictDetail() {
           SECTION 7 — Verification hint
       ═══════════════════════════════════════════════════════════════ */}
       <Section icon="🧭" title="What to inspect next">
-        <div style={{
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)',
-          padding: 'var(--sp-4)',
-          fontSize: 13,
-          color: 'var(--text)',
-          lineHeight: 1.7,
-        }}>
+        <div
+          style={{
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            padding: 'var(--sp-4)',
+            fontSize: 13,
+            color: 'var(--text)',
+            lineHeight: 1.7,
+          }}
+        >
           {conflict.verificationHint}
         </div>
       </Section>
@@ -231,16 +255,32 @@ export function ConflictDetail() {
       ═══════════════════════════════════════════════════════════════ */}
       {!resolved && conflict.proposedResolution && (
         <Section icon="🤖" title="Bob-proposed resolution">
-          <div className="card" style={{
-            borderColor: 'rgba(59,130,246,0.3)',
-            background: 'var(--accent-glow)',
-          }}>
-            <p style={{ fontSize: 13, lineHeight: 1.7, marginBottom: 'var(--sp-4)', color: 'var(--text)' }}>
+          <div
+            className="card"
+            style={{
+              borderColor: 'rgba(59,130,246,0.3)',
+              background: 'var(--accent-glow)',
+            }}
+          >
+            <p
+              style={{
+                fontSize: 13,
+                lineHeight: 1.7,
+                marginBottom: 'var(--sp-4)',
+                color: 'var(--text)',
+              }}
+            >
               {conflict.proposedResolution}
             </p>
             <div className="row gap-3">
               <button className="btn btn-primary" onClick={handleAccept} disabled={accepting}>
-                {accepting ? <><span className="spinner" /> Applying fix…</> : 'Accept resolution'}
+                {accepting ? (
+                  <>
+                    <span className="spinner" /> Applying fix…
+                  </>
+                ) : (
+                  'Accept resolution'
+                )}
               </button>
               <button className="btn btn-ghost" onClick={() => navigate('/passport')}>
                 Skip for now
@@ -252,11 +292,14 @@ export function ConflictDetail() {
 
       {/* Post-resolution state */}
       {resolved && (
-        <div className="fade-in card" style={{
-          borderColor: 'var(--low-border)',
-          background: 'var(--low-bg)',
-          marginBottom: 'var(--sp-6)',
-        }}>
+        <div
+          className="fade-in card"
+          style={{
+            borderColor: 'var(--low-border)',
+            background: 'var(--low-bg)',
+            marginBottom: 'var(--sp-6)',
+          }}
+        >
           <div className="row gap-2" style={{ marginBottom: 'var(--sp-3)' }}>
             <span>✅</span>
             <h3 style={{ color: 'var(--pass)' }}>Resolution applied</h3>
@@ -280,7 +323,11 @@ export function ConflictDetail() {
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
     <div style={{ marginBottom: 'var(--sp-5)' }}>
-      <button onClick={onClick} className="btn btn-ghost" style={{ padding: '5px 12px', fontSize: 12 }}>
+      <button
+        onClick={onClick}
+        className="btn btn-ghost"
+        style={{ padding: '5px 12px', fontSize: 12 }}
+      >
         ← Conflict Graph
       </button>
     </div>
@@ -289,19 +336,29 @@ function BackButton({ onClick }: { onClick: () => void }) {
 
 function EmptyState({ onGoToGraph }: { onGoToGraph: () => void }) {
   return (
-    <div style={{
-      textAlign: 'center',
-      padding: 'var(--sp-12) var(--sp-8)',
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-lg)',
-    }}>
+    <div
+      style={{
+        textAlign: 'center',
+        padding: 'var(--sp-12) var(--sp-8)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+      }}
+    >
       <div style={{ fontSize: 40, marginBottom: 'var(--sp-4)' }}>◇</div>
       <h3 style={{ marginBottom: 'var(--sp-3)', color: 'var(--text-muted)' }}>
         No conflict selected
       </h3>
-      <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 'var(--sp-6)', lineHeight: 1.6 }}>
-        Select a conflict node in the graph or click a conflict row to<br />
+      <p
+        style={{
+          fontSize: 13,
+          color: 'var(--text-dim)',
+          marginBottom: 'var(--sp-6)',
+          lineHeight: 1.6,
+        }}
+      >
+        Select a conflict node in the graph or click a conflict row to
+        <br />
         see the full evidence breakdown here.
       </p>
       <button className="btn btn-secondary" onClick={onGoToGraph}>
@@ -314,9 +371,15 @@ function EmptyState({ onGoToGraph }: { onGoToGraph: () => void }) {
 // ── Section wrapper ────────────────────────────────────────────────────────────
 
 function Section({
-  icon, title, hint, children,
+  icon,
+  title,
+  hint,
+  children,
 }: {
-  icon: string; title: string; hint?: string; children: React.ReactNode;
+  icon: string;
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
 }) {
   return (
     <section style={{ marginBottom: 'var(--sp-5)' }}>
@@ -337,12 +400,15 @@ function Section({
 function KindBadge({ kind }: { kind: string }) {
   const label = kind.replace(/_/g, ' ');
   return (
-    <span className="badge" style={{
-      color: 'var(--text-muted)',
-      borderColor: 'var(--border)',
-      background: 'var(--surface-2)',
-      fontFamily: 'var(--mono)',
-    }}>
+    <span
+      className="badge"
+      style={{
+        color: 'var(--text-muted)',
+        borderColor: 'var(--border)',
+        background: 'var(--surface-2)',
+        fontFamily: 'var(--mono)',
+      }}
+    >
       {label}
     </span>
   );
@@ -356,8 +422,8 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
     <span
       className="badge"
       style={{
-        color:       isHigh ? 'var(--pass)'   : 'var(--medium)',
-        background:  isHigh ? 'var(--low-bg)' : 'var(--medium-bg)',
+        color: isHigh ? 'var(--pass)' : 'var(--medium)',
+        background: isHigh ? 'var(--low-bg)' : 'var(--medium-bg)',
         borderColor: isHigh ? 'var(--low-border)' : 'var(--medium-border)',
       }}
       title={`Confidence: ${confidence}% — ${isHigh ? 'all evidence resolved' : 'some evidence partially resolved'}`}
@@ -370,7 +436,10 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
 // ── Assumption card ────────────────────────────────────────────────────────────
 
 function AssumptionCard({
-  assumption, label, accent, accentBg,
+  assumption,
+  label,
+  accent,
+  accentBg,
 }: {
   assumption: Assumption;
   label: string;
@@ -380,10 +449,16 @@ function AssumptionCard({
   const missingPath = !assumption.sourceFile || assumption.sourceFile === '—';
   return (
     <div className="card-sm" style={{ background: accentBg, borderColor: accent }}>
-      <div style={{
-        fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-        letterSpacing: '0.08em', color: accent, marginBottom: 'var(--sp-2)',
-      }}>
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: accent,
+          marginBottom: 'var(--sp-2)',
+        }}
+      >
         {label}
       </div>
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 'var(--sp-3)', lineHeight: 1.5 }}>
@@ -396,18 +471,24 @@ function AssumptionCard({
           mono
           dim={missingPath}
         />
-        <MetaRow label="Line"       value={assumption.sourceLine} mono />
-        <MetaRow label="Depends on" value={assumption.dependsOn}  mono />
-        <MetaRow label="Found by"   value={assumption.producedBy} />
+        <MetaRow label="Line" value={assumption.sourceLine} mono />
+        <MetaRow label="Depends on" value={assumption.dependsOn} mono />
+        <MetaRow label="Found by" value={assumption.producedBy} />
       </div>
     </div>
   );
 }
 
 function MetaRow({
-  label, value, mono, dim,
+  label,
+  value,
+  mono,
+  dim,
 }: {
-  label: string; value: string; mono?: boolean; dim?: boolean;
+  label: string;
+  value: string;
+  mono?: boolean;
+  dim?: boolean;
 }) {
   return (
     <div className="row gap-2" style={{ fontSize: 12 }}>
@@ -432,34 +513,48 @@ function ClashBar({ conflict }: { conflict: Conflict }) {
   };
   const valA = extract(conflict.assumptionA.statement);
   const valB = extract(conflict.assumptionB.statement);
-  const fileA = conflict.assumptionA.sourceFile !== '—'
-    ? conflict.assumptionA.sourceFile.split('/').pop()
-    : '(unresolved)';
-  const fileB = conflict.assumptionB.sourceFile !== '—'
-    ? conflict.assumptionB.sourceFile.split('/').pop()
-    : '(unresolved)';
+  const fileA =
+    conflict.assumptionA.sourceFile !== '—'
+      ? conflict.assumptionA.sourceFile.split('/').pop()
+      : '(unresolved)';
+  const fileB =
+    conflict.assumptionB.sourceFile !== '—'
+      ? conflict.assumptionB.sourceFile.split('/').pop()
+      : '(unresolved)';
 
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 'var(--sp-5)',
-      padding: 'var(--sp-4) var(--sp-6)',
-      background: 'var(--surface-2)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius)',
-    }}>
-      <ClashPill file={fileA!} value={valA} color="var(--low)" />
-      <div style={{
+    <div
+      style={{
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        gap: 4,
-      }}>
-        <span style={{ fontSize: 22, color: 'var(--high)', fontWeight: 700, lineHeight: 1 }}>≠</span>
-        <span style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase',
-          letterSpacing: '0.08em' }}>
+        justifyContent: 'center',
+        gap: 'var(--sp-5)',
+        padding: 'var(--sp-4) var(--sp-6)',
+        background: 'var(--surface-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius)',
+      }}
+    >
+      <ClashPill file={fileA!} value={valA} color="var(--low)" />
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 4,
+        }}
+      >
+        <span style={{ fontSize: 22, color: 'var(--high)', fontWeight: 700, lineHeight: 1 }}>
+          ≠
+        </span>
+        <span
+          style={{
+            fontSize: 9,
+            color: 'var(--text-dim)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+          }}
+        >
           conflict
         </span>
       </div>
@@ -471,17 +566,21 @@ function ClashBar({ conflict }: { conflict: Conflict }) {
 function ClashPill({ file, value, color }: { file: string; value: string; color: string }) {
   return (
     <div className="stack gap-1" style={{ alignItems: 'center' }}>
-      <span style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--mono)' }}>{file}</span>
-      <span style={{
-        fontFamily: 'var(--mono)',
-        fontSize: 14,
-        fontWeight: 700,
-        color,
-        background: 'var(--surface)',
-        border: `1px solid ${color}`,
-        padding: '4px 14px',
-        borderRadius: 6,
-      }}>
+      <span style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--mono)' }}>
+        {file}
+      </span>
+      <span
+        style={{
+          fontFamily: 'var(--mono)',
+          fontSize: 14,
+          fontWeight: 700,
+          color,
+          background: 'var(--surface)',
+          border: `1px solid ${color}`,
+          padding: '4px 14px',
+          borderRadius: 6,
+        }}
+      >
         {value}
       </span>
     </div>
@@ -493,31 +592,39 @@ function ClashPill({ file, value, color }: { file: string; value: string; color:
 function EvidenceCard({ excerpt, index }: { excerpt: EvidenceExcerpt; index: number }) {
   const missingFile = !excerpt.file;
   return (
-    <div style={{
-      border: `1px solid ${missingFile ? 'var(--medium-border)' : 'var(--border-2)'}`,
-      borderRadius: 'var(--radius)',
-      overflow: 'hidden',
-    }}>
+    <div
+      style={{
+        border: `1px solid ${missingFile ? 'var(--medium-border)' : 'var(--border-2)'}`,
+        borderRadius: 'var(--radius)',
+        overflow: 'hidden',
+      }}
+    >
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '7px 12px',
-        background: missingFile ? 'var(--medium-bg)' : 'var(--surface-2)',
-        borderBottom: `1px solid ${missingFile ? 'var(--medium-border)' : 'var(--border-2)'}`,
-        gap: 'var(--sp-3)',
-        flexWrap: 'wrap',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '7px 12px',
+          background: missingFile ? 'var(--medium-bg)' : 'var(--surface-2)',
+          borderBottom: `1px solid ${missingFile ? 'var(--medium-border)' : 'var(--border-2)'}`,
+          gap: 'var(--sp-3)',
+          flexWrap: 'wrap',
+        }}
+      >
         <div className="row gap-2">
           <span style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 700 }}>
             #{index + 1}
           </span>
           {missingFile ? (
-            <span style={{
-              fontFamily: 'var(--mono)', fontSize: 11,
-              color: 'var(--medium)', fontStyle: 'italic',
-            }}>
+            <span
+              style={{
+                fontFamily: 'var(--mono)',
+                fontSize: 11,
+                color: 'var(--medium)',
+                fontStyle: 'italic',
+              }}
+            >
               ⚠ file path not resolved
             </span>
           ) : (
@@ -525,36 +632,49 @@ function EvidenceCard({ excerpt, index }: { excerpt: EvidenceExcerpt; index: num
               {excerpt.file}
             </span>
           )}
-          <span style={{
-            fontSize: 11, color: 'var(--text-dim)',
-            borderLeft: '1px solid var(--border)', paddingLeft: 8,
-          }}>
+          <span
+            style={{
+              fontSize: 11,
+              color: 'var(--text-dim)',
+              borderLeft: '1px solid var(--border)',
+              paddingLeft: 8,
+            }}
+          >
             {excerpt.location}
           </span>
         </div>
-        <span style={{
-          fontSize: 10, fontWeight: 600, color: 'var(--text-dim)',
-          textTransform: 'uppercase', letterSpacing: '0.06em',
-          background: 'var(--surface)', padding: '1px 6px', borderRadius: 4,
-          border: '1px solid var(--border-2)',
-        }}>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'var(--text-dim)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            background: 'var(--surface)',
+            padding: '1px 6px',
+            borderRadius: 4,
+            border: '1px solid var(--border-2)',
+          }}
+        >
           {excerpt.source}
         </span>
       </div>
 
       {/* Code snippet */}
-      <pre style={{
-        margin: 0,
-        padding: 'var(--sp-3) var(--sp-4)',
-        background: 'var(--surface)',
-        fontSize: 12,
-        fontFamily: 'var(--mono)',
-        color: 'var(--text)',
-        lineHeight: 1.65,
-        overflowX: 'auto',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-      }}>
+      <pre
+        style={{
+          margin: 0,
+          padding: 'var(--sp-3) var(--sp-4)',
+          background: 'var(--surface)',
+          fontSize: 12,
+          fontFamily: 'var(--mono)',
+          color: 'var(--text)',
+          lineHeight: 1.65,
+          overflowX: 'auto',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        }}
+      >
         {excerpt.snippet}
       </pre>
     </div>
@@ -566,18 +686,30 @@ function EvidenceCard({ excerpt, index }: { excerpt: EvidenceExcerpt; index: num
 function ResolutionSummary({ conflict }: { conflict: Conflict }) {
   if (conflict.kind === 'BUSINESS_RULE') {
     return (
-      <ul style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.8, paddingLeft: 'var(--sp-5)' }}>
-        <li>billing/permissions.ts updated: <code>role === "owner"</code></li>
-        <li>New regression test added: <code>"admin cannot manage organization subscription"</code></li>
+      <ul
+        style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.8, paddingLeft: 'var(--sp-5)' }}
+      >
+        <li>
+          billing/permissions.ts updated: <code>role === "owner"</code>
+        </li>
+        <li>
+          New regression test added: <code>"admin cannot manage organization subscription"</code>
+        </li>
         <li>Test suite: 42 → 43 passing</li>
       </ul>
     );
   }
   if (conflict.kind === 'CONTRACT') {
     return (
-      <ul style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.8, paddingLeft: 'var(--sp-5)' }}>
-        <li>frontend/src/hooks/useUser.ts updated: <code>data.userId</code></li>
-        <li>All 3 remaining <code>user_id</code> references in frontend updated</li>
+      <ul
+        style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.8, paddingLeft: 'var(--sp-5)' }}
+      >
+        <li>
+          frontend/src/hooks/useUser.ts updated: <code>data.userId</code>
+        </li>
+        <li>
+          All 3 remaining <code>user_id</code> references in frontend updated
+        </li>
         <li>Contract test added: field name round-trip assertion</li>
       </ul>
     );
@@ -585,7 +717,9 @@ function ResolutionSummary({ conflict }: { conflict: Conflict }) {
   return (
     <ul style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.8, paddingLeft: 'var(--sp-5)' }}>
       <li>notification-service.ts: null-check added before email access</li>
-      <li>New test: <code>"notification skipped gracefully for user without email"</code></li>
+      <li>
+        New test: <code>"notification skipped gracefully for user without email"</code>
+      </li>
     </ul>
   );
 }

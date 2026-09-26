@@ -12,43 +12,40 @@
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  DEMO_STEPS,
-  DEMO_STEP_BY_INDEX,
-  type DemoStep,
-  type DemoStepId,
-} from './demoScript';
+import { DEMO_STEPS, DEMO_STEP_BY_INDEX, type DemoStep, type DemoStepId } from './demoScript';
 
 // ── Context shape ─────────────────────────────────────────────────────────────
 
 export interface DemoContextValue {
   /** Always true inside /demo/* routes */
-  isDemo:       boolean;
-  currentStep:  DemoStep;
-  stepIndex:    number;
-  totalSteps:   number;
+  isDemo: boolean;
+  currentStep: DemoStep;
+  stepIndex: number;
+  totalSteps: number;
   /** Move to the next step (and navigate if the next step has a different route) */
-  advance:      () => void;
+  advance: () => void;
   /** Jump to a specific step by id */
-  jumpTo:       (id: DemoStepId) => void;
+  jumpTo: (id: DemoStepId) => void;
   /** Reset to step 0 and navigate to /demo/verify */
-  restart:      () => void;
+  restart: () => void;
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null);
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-interface DemoProviderProps { children: ReactNode; }
+interface DemoProviderProps {
+  children: ReactNode;
+}
 
 export function DemoProvider({ children }: DemoProviderProps) {
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const [stepIndex, setStepIndex] = useState(0);
 
   const currentStep = DEMO_STEP_BY_INDEX(stepIndex);
 
   const advance = useCallback(() => {
-    const nextIdx  = stepIndex + 1;
+    const nextIdx = stepIndex + 1;
     const nextStep = DEMO_STEP_BY_INDEX(nextIdx);
     setStepIndex(nextIdx);
     // Navigate only when route changes
@@ -57,12 +54,15 @@ export function DemoProvider({ children }: DemoProviderProps) {
     }
   }, [stepIndex, currentStep.route, navigate]);
 
-  const jumpTo = useCallback((id: DemoStepId) => {
-    const target = DEMO_STEPS.find((s) => s.id === id);
-    if (!target) return;
-    setStepIndex(target.index);
-    navigate(target.route);
-  }, [navigate]);
+  const jumpTo = useCallback(
+    (id: DemoStepId) => {
+      const target = DEMO_STEPS.find((s) => s.id === id);
+      if (!target) return;
+      setStepIndex(target.index);
+      navigate(target.route);
+    },
+    [navigate],
+  );
 
   const restart = useCallback(() => {
     setStepIndex(0);
@@ -70,7 +70,7 @@ export function DemoProvider({ children }: DemoProviderProps) {
   }, [navigate]);
 
   const value: DemoContextValue = {
-    isDemo:      true,
+    isDemo: true,
     currentStep,
     stepIndex,
     totalSteps: DEMO_STEPS.length,
@@ -93,12 +93,12 @@ export function useDemoMode(): DemoContextValue {
   if (ctx) return ctx;
   // Stub for non-demo routes — all values are inert
   return {
-    isDemo:      false,
+    isDemo: false,
     currentStep: DEMO_STEP_BY_INDEX(0),
-    stepIndex:   0,
-    totalSteps:  DEMO_STEPS.length,
-    advance:     () => {},
-    jumpTo:      () => {},
-    restart:     () => {},
+    stepIndex: 0,
+    totalSteps: DEMO_STEPS.length,
+    advance: () => {},
+    jumpTo: () => {},
+    restart: () => {},
   };
 }

@@ -8,14 +8,14 @@ const AGENT_COUNT = 5;
 const STEP_INTERVAL_MS = 1200; // advance one agent every 1.2s
 
 export function Analysis() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const sessionId = (location.state as { sessionId?: string })?.sessionId ?? 'session-demo-001';
 
-  const [session, setSession]     = useState<AnalysisSession | null>(null);
-  const [step, setStep]           = useState(0);
-  const [done, setDone]           = useState(false);
-  const intervalRef               = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [session, setSession] = useState<AnalysisSession | null>(null);
+  const [step, setStep] = useState(0);
+  const [done, setDone] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Progressive agent simulation
   useEffect(() => {
@@ -42,7 +42,7 @@ export function Analysis() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const progress = Math.min(Math.round((step / AGENT_COUNT) * 100), 100);
@@ -58,7 +58,14 @@ export function Analysis() {
           </p>
         </div>
         <div style={{ marginLeft: 'auto', textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 28, fontWeight: 700, color: done ? 'var(--pass)' : 'var(--accent)', lineHeight: 1 }}>
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: done ? 'var(--pass)' : 'var(--accent)',
+              lineHeight: 1,
+            }}
+          >
             {progress}%
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>complete</div>
@@ -70,7 +77,10 @@ export function Analysis() {
         {session ? (
           <AgentProgress agents={session.agents} />
         ) : (
-          <div className="row gap-3" style={{ justifyContent: 'center', padding: 'var(--sp-8)', color: 'var(--text-muted)' }}>
+          <div
+            className="row gap-3"
+            style={{ justifyContent: 'center', padding: 'var(--sp-8)', color: 'var(--text-muted)' }}
+          >
             <span className="spinner" />
             Initialising Bob agents…
           </div>
@@ -78,7 +88,10 @@ export function Analysis() {
       </div>
 
       {/* ── What Bob is doing ── */}
-      <div className="card-sm" style={{ marginBottom: 'var(--sp-6)', background: 'var(--surface-2)' }}>
+      <div
+        className="card-sm"
+        style={{ marginBottom: 'var(--sp-6)', background: 'var(--surface-2)' }}
+      >
         <div className="row gap-2" style={{ marginBottom: 'var(--sp-3)' }}>
           <BobLogo />
           <span style={{ fontWeight: 600, fontSize: 13 }}>IBM Bob — Parallel Subagents</span>
@@ -132,9 +145,9 @@ export function Analysis() {
 function BobLogo() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <rect width="18" height="18" rx="5" fill="var(--accent)" opacity="0.2"/>
-      <circle cx="9" cy="9" r="4" stroke="var(--accent)" strokeWidth="1.5"/>
-      <circle cx="9" cy="9" r="1.5" fill="var(--accent)"/>
+      <rect width="18" height="18" rx="5" fill="var(--accent)" opacity="0.2" />
+      <circle cx="9" cy="9" r="4" stroke="var(--accent)" strokeWidth="1.5" />
+      <circle cx="9" cy="9" r="1.5" fill="var(--accent)" />
     </svg>
   );
 }

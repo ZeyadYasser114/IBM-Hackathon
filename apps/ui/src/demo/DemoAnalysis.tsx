@@ -17,11 +17,11 @@ const AGENT_COUNT = 5;
 
 export function DemoAnalysis() {
   const demo = useDemoMode();
-  const [session, setSession]  = useState<AnalysisSession | null>(null);
-  const [step, setStep]        = useState(0);
-  const [done, setDone]        = useState(false);
-  const intervalRef            = useRef<ReturnType<typeof setInterval> | null>(null);
-  const advancedRef            = useRef(false); // prevent double-advance
+  const [session, setSession] = useState<AnalysisSession | null>(null);
+  const [step, setStep] = useState(0);
+  const [done, setDone] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const advancedRef = useRef(false); // prevent double-advance
 
   useEffect(() => {
     let currentStep = 0;
@@ -42,7 +42,9 @@ export function DemoAnalysis() {
 
     tick();
     intervalRef.current = setInterval(tick, DEMO_AGENT_INTERVAL);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []);
 
   // Auto-advance to graph when done (only once)
@@ -63,13 +65,19 @@ export function DemoAnalysis() {
         <div>
           <h2 style={{ marginBottom: 4 }}>Bob Analysis Running</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-            Five parallel Bob subagents inspect requirements, code, contracts,
-            dependencies, and semantic consistency.
+            Five parallel Bob subagents inspect requirements, code, contracts, dependencies, and
+            semantic consistency.
           </p>
         </div>
         <div style={{ marginLeft: 'auto', textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 28, fontWeight: 700,
-            color: done ? 'var(--pass)' : 'var(--accent)', lineHeight: 1 }}>
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: done ? 'var(--pass)' : 'var(--accent)',
+              lineHeight: 1,
+            }}
+          >
             {progress}%
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>complete</div>
@@ -80,8 +88,10 @@ export function DemoAnalysis() {
         {session ? (
           <AgentProgress agents={session.agents} />
         ) : (
-          <div className="row gap-3" style={{ justifyContent: 'center',
-            padding: 'var(--sp-8)', color: 'var(--text-muted)' }}>
+          <div
+            className="row gap-3"
+            style={{ justifyContent: 'center', padding: 'var(--sp-8)', color: 'var(--text-muted)' }}
+          >
             <span className="spinner" />
             Initialising Bob agents…
           </div>
@@ -89,24 +99,27 @@ export function DemoAnalysis() {
       </div>
 
       {done && (
-        <div className="fade-in" style={{
-          background: 'var(--high-bg)',
-          border: '1px solid var(--high-border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--sp-5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--sp-4)',
-        }}>
+        <div
+          className="fade-in"
+          style={{
+            background: 'var(--high-bg)',
+            border: '1px solid var(--high-border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 'var(--sp-5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 'var(--sp-4)',
+          }}
+        >
           <div>
             <div className="row gap-2" style={{ marginBottom: 4 }}>
               <span style={{ fontSize: 16 }}>⚠</span>
               <h3 style={{ color: 'var(--high)' }}>1 Semantic Conflict Detected</h3>
             </div>
             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              HIGH severity business-rule conflict found despite a clean Git merge.
-              Proceeding to Conflict Graph…
+              HIGH severity business-rule conflict found despite a clean Git merge. Proceeding to
+              Conflict Graph…
             </p>
           </div>
           <span className="spinner" style={{ flexShrink: 0 }} />

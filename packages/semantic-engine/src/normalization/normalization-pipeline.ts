@@ -9,11 +9,16 @@
  * anchors the evidence, and records a full trace of every change.
  */
 
-import { SemanticAssumption } from "../types/assumption";
-import { normalizeEntity } from "./entity-normalizer";
-import { normalizePredicate } from "./predicate-normalizer";
-import { normalizeValueString } from "./value-normalizer";
-import { NormalizedAssumption, NormalizationTrace, NormalizationStep, buildEvidenceAnchor } from "./evidence-anchor";
+import { SemanticAssumption } from '../types/assumption';
+import { normalizeEntity } from './entity-normalizer';
+import { normalizePredicate } from './predicate-normalizer';
+import { normalizeValueString } from './value-normalizer';
+import {
+  NormalizedAssumption,
+  NormalizationTrace,
+  NormalizationStep,
+  buildEvidenceAnchor,
+} from './evidence-anchor';
 
 // ---------------------------------------------------------------------------
 // Core normalization function
@@ -26,7 +31,7 @@ function normalizeOne(assumption: SemanticAssumption): NormalizedAssumption {
   const entityResult = normalizeEntity(assumption.subject);
   if (entityResult.explanation) {
     trace.push({
-      field: "subject",
+      field: 'subject',
       rawValue: assumption.subject,
       canonicalValue: entityResult.canonical,
       explanation: entityResult.explanation,
@@ -37,18 +42,18 @@ function normalizeOne(assumption: SemanticAssumption): NormalizedAssumption {
   const predicateResult = normalizePredicate(assumption.predicate, normalizeValueString);
   if (predicateResult.explanation) {
     // Split into subject vs value steps when the explanation contains both
-    const parts = predicateResult.explanation.split("; ");
+    const parts = predicateResult.explanation.split('; ');
     for (const part of parts) {
-      if (part.toLowerCase().includes("value")) {
+      if (part.toLowerCase().includes('value')) {
         trace.push({
-          field: "value",
+          field: 'value',
           rawValue: assumption.predicate,
           canonicalValue: predicateResult.canonical,
           explanation: part,
         });
       } else {
         trace.push({
-          field: "predicate",
+          field: 'predicate',
           rawValue: assumption.predicate,
           canonicalValue: predicateResult.canonical,
           explanation: part,
@@ -86,7 +91,7 @@ function normalizeOne(assumption: SemanticAssumption): NormalizedAssumption {
  *   normalizedAssumption.canonicalSubject === "".
  */
 export function normalizeAssumptions(
-  assumptions: readonly SemanticAssumption[]
+  assumptions: readonly SemanticAssumption[],
 ): NormalizedAssumption[] {
   // Guard against null/undefined entries that a broken AI adapter might inject.
   return assumptions.filter((a): a is SemanticAssumption => a != null).map(normalizeOne);
@@ -97,12 +102,13 @@ export function normalizeAssumptions(
  * that were dropped (produced an empty canonicalSubject) so callers can
  * surface warnings.
  */
-export function normalizeAssumptionsWithWarnings(
-  assumptions: readonly SemanticAssumption[]
-): { normalized: NormalizedAssumption[]; droppedIds: string[] } {
-  const normalized = assumptions.filter((a): a is SemanticAssumption => a != null).map(normalizeOne);
-  const droppedIds = normalized
-    .filter((n) => n.canonicalSubject === "")
-    .map((n) => n.raw.id);
+export function normalizeAssumptionsWithWarnings(assumptions: readonly SemanticAssumption[]): {
+  normalized: NormalizedAssumption[];
+  droppedIds: string[];
+} {
+  const normalized = assumptions
+    .filter((a): a is SemanticAssumption => a != null)
+    .map(normalizeOne);
+  const droppedIds = normalized.filter((n) => n.canonicalSubject === '').map((n) => n.raw.id);
   return { normalized, droppedIds };
 }

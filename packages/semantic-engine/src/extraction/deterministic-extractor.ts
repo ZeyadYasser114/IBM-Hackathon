@@ -4,15 +4,24 @@
  * DeterministicExtractor — default AssumptionExtractorProvider. No AI calls.
  */
 
-import { AssumptionExtractorProvider, ExtractionUnit, ExtractionResult } from "./extractor-provider";
-import { AssumptionCategory } from "./assumption-category";
-import { ALL_RULE_PATTERNS, RulePattern } from "./rule-patterns";
-import { SemanticAssumption } from "../types/assumption";
-import { SourceType } from "../types/enums";
+import {
+  AssumptionExtractorProvider,
+  ExtractionUnit,
+  ExtractionResult,
+} from './extractor-provider';
+import { AssumptionCategory } from './assumption-category';
+import { ALL_RULE_PATTERNS, RulePattern } from './rule-patterns';
+import { SemanticAssumption } from '../types/assumption';
+import { SourceType } from '../types/enums';
 
-function makeAssumptionId(unitId: string, subject: string, predicate: string, index: number): string {
+function makeAssumptionId(
+  unitId: string,
+  subject: string,
+  predicate: string,
+  index: number,
+): string {
   const slug = `${unitId}__${subject}__${predicate}__${index}`
-    .replace(/[^a-z0-9_]+/gi, "_")
+    .replace(/[^a-z0-9_]+/gi, '_')
     .toLowerCase();
   return `assm_${slug}`;
 }
@@ -32,16 +41,19 @@ function applyPatterns(
   segment: string,
   fullText: string,
   categoryHint: AssumptionCategory | undefined,
-  patterns: readonly RulePattern[]
-): Array<{ rule: RulePattern; result: NonNullable<ReturnType<RulePattern["extract"]>> }> {
-  const results: Array<{ rule: RulePattern; result: NonNullable<ReturnType<RulePattern["extract"]>> }> = [];
+  patterns: readonly RulePattern[],
+): Array<{ rule: RulePattern; result: NonNullable<ReturnType<RulePattern['extract']>> }> {
+  const results: Array<{
+    rule: RulePattern;
+    result: NonNullable<ReturnType<RulePattern['extract']>>;
+  }> = [];
 
   const applicablePatterns = categoryHint
     ? patterns.filter(
         (p) =>
           p.category === categoryHint ||
           (categoryHint === AssumptionCategory.BUSINESS_RULE &&
-            p.category === AssumptionCategory.AUTHORIZATION)
+            p.category === AssumptionCategory.AUTHORIZATION),
       )
     : patterns;
 
@@ -60,7 +72,7 @@ function applyPatterns(
 }
 
 export class DeterministicExtractor implements AssumptionExtractorProvider {
-  readonly providerName = "DeterministicExtractor";
+  readonly providerName = 'DeterministicExtractor';
 
   private readonly defaultSourceType: SourceType;
 
@@ -115,7 +127,7 @@ export class DeterministicExtractor implements AssumptionExtractorProvider {
 
     if (assumptions.length === 0) {
       diagnostics.push(
-        `Unit "${unit.unitId}": no pattern matched — returning empty result (not hallucinating)`
+        `Unit "${unit.unitId}": no pattern matched — returning empty result (not hallucinating)`,
       );
     }
 

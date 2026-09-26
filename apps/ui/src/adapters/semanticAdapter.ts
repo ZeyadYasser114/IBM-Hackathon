@@ -43,10 +43,10 @@ export async function startAnalysis(input: VerifyChangeInput): Promise<string> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        repository:     input.repository,
+        repository: input.repository,
         featureRequest: input.featureRequest,
-        branchA:        input.branchA,
-        branchB:        input.branchB,
+        branchA: input.branchA,
+        branchB: input.branchB,
       }),
     });
     if (!r.ok) throw new Error(`API error: ${r.status}`);

@@ -6,11 +6,11 @@ interface AgentProgressProps {
 }
 
 const AGENT_ICONS: Record<string, string> = {
-  'agent-intent':     '🎯',
-  'agent-change':     '🔍',
-  'agent-contract':   '📋',
+  'agent-intent': '🎯',
+  'agent-change': '🔍',
+  'agent-contract': '📋',
   'agent-dependency': '🔗',
-  'agent-adversary':  '⚔️',
+  'agent-adversary': '⚔️',
 };
 
 export function AgentProgress({ agents }: AgentProgressProps) {
@@ -22,7 +22,9 @@ export function AgentProgress({ agents }: AgentProgressProps) {
       {/* Progress header */}
       <div className="row" style={{ justifyContent: 'space-between', marginBottom: 'var(--sp-2)' }}>
         <span style={{ fontSize: 13, fontWeight: 600 }}>Bob Analysis Agents</span>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{completed}/{agents.length} complete</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          {completed}/{agents.length} complete
+        </span>
       </div>
 
       {/* Progress track */}
@@ -59,14 +61,19 @@ function AgentRow({ agent, index }: { agent: AgentRun; index: number }) {
       }}
     >
       {/* Icon / spinner */}
-      <div style={{
-        width: 36, height: 36,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--surface)',
-        borderRadius: 8,
-        fontSize: 18,
-        flexShrink: 0,
-      }}>
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--surface)',
+          borderRadius: 8,
+          fontSize: 18,
+          flexShrink: 0,
+        }}
+      >
         {agent.status === 'RUNNING' ? <span className="spinner" /> : icon}
       </div>
 
@@ -75,16 +82,18 @@ function AgentRow({ agent, index }: { agent: AgentRun; index: number }) {
         <span style={{ fontWeight: 600, fontSize: 13 }}>{agent.name}</span>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{agent.description}</span>
         {agent.finding && agent.status === 'COMPLETE' && (
-          <div style={{
-            marginTop: 4,
-            fontSize: 12,
-            color: 'var(--text)',
-            background: 'var(--surface)',
-            border: '1px solid var(--border-2)',
-            borderRadius: 4,
-            padding: '4px 8px',
-            fontFamily: 'var(--mono)',
-          }}>
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 12,
+              color: 'var(--text)',
+              background: 'var(--surface)',
+              border: '1px solid var(--border-2)',
+              borderRadius: 4,
+              padding: '4px 8px',
+              fontFamily: 'var(--mono)',
+            }}
+          >
             {agent.finding}
           </div>
         )}
