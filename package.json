@@ -11,6 +11,9 @@
   "scripts": {
     "build": "pnpm -r --filter \"./packages/*\" build && pnpm -r --filter \"./apps/*\" build",
     "dev": "pnpm --filter \"./apps/web\" dev",
+    "ui:dev": "pnpm --filter \"./apps/ui\" dev",
+    "ui:build": "pnpm --filter \"./apps/ui\" build",
+    "api:dev": "pnpm --filter \"./apps/api\" dev",
     "typecheck": "pnpm -r --filter \"./packages/*\" typecheck && pnpm -r --filter \"./apps/*\" typecheck",
     "lint": "pnpm -r --filter \"./packages/*\" lint && pnpm -r --filter \"./apps/*\" lint",
     "test": "pnpm -r --filter \"./packages/*\" test",

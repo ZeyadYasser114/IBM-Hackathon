@@ -1,612 +1,224 @@
 # MergeMind
 
-> **Git tells you whether code can merge.**
-> **MergeMind tells you whether the ideas behind the code can coexist.**
+> **Git tells you whether code can merge.  
+> MergeMind tells you whether the *ideas* behind the code can coexist.**
+
+IBM TechXchange Hackathon 2024 — Semantic Verification Layer for Parallel AI Coding Agents.
 
 ---
 
-## The Problem
+## What is MergeMind?
 
-Software development is changing.
+When multiple AI agents develop code in parallel, each agent may produce perfectly valid code, Git may report no conflicts, and all tests may pass — yet the product can still break because the *meanings* of the changes disagree.
 
-Developers are no longer working with just one AI coding assistant. They are beginning to use multiple agents in parallel:
-
-- one agent changes authentication
-- another modifies the database
-- another builds an API
-- another generates tests
-- another handles deployment
-
-Each agent may produce perfectly valid code. Each branch may compile. Every test may pass. Git may report:
-
-> No conflicts.
-
-And the product can still break.
-
-Because Git understands **text**. It does not understand:
-
-- assumptions
-- business rules
-- architectural decisions
-- API expectations
-- data contracts
-- developer intent
-
-Two AI agents can therefore make changes that are individually correct but **semantically incompatible**.
-
-That is the new problem MergeMind solves.
-
----
-
-## The Idea
-
-MergeMind is a **semantic verification layer for parallel AI coding agents**.
-
-Before AI-generated changes are merged, MergeMind asks:
-
-> Do these changes still agree with each other and with the original requirement?
-
-It uses IBM Bob agents to independently inspect:
-
-- the original feature request
-- code changes
-- APIs
-- database schemas
-- dependencies
-- documentation
-- tests
-
-Then it extracts the assumptions each change makes. MergeMind compares those assumptions and builds an **Agent Conflict Graph**.
-
-Instead of only finding:
-
-> File A and File B edited the same line.
-
-MergeMind can find:
-
-> Agent A changed the meaning of "role", but Agent B still depends on the old meaning.
-
-That is a conflict Git cannot see.
+MergeMind is a semantic verification layer that:
+1. **Extracts assumptions** from code changes and the original feature requirement  
+2. **Detects semantic conflicts** — business-rule, contract, and dependency disagreements that Git cannot see  
+3. **Generates an Agent Conflict Graph** — a visual map of how AI-generated changes relate to each other  
+4. **Issues a Change Passport** — a permanent, machine-readable record of what was verified, what conflicts were found, and what risk remains
 
 ---
 
 ## The Killer Example
 
-A developer asks:
+A developer asks:  
+> *"Add organization billing. Only organization owners can manage subscriptions."*
 
-> Add organization billing. Only organization owners can manage subscriptions.
+Two Bob tasks run in parallel:
 
-Two Bob tasks run in parallel.
-
-**Authentication task** — updates the role system:
-
+**Authentication task:**
 ```ts
 // auth/roles.ts
-User.role = "owner";
+export const ORG_PRIVILEGED_ROLE = 'owner';
+User.role = ORG_PRIVILEGED_ROLE;
 ```
 
-**Billing task** — implements the billing authorization:
-
+**Billing task:**
 ```ts
 // billing/permissions.ts
-if (user.role === "admin") {
+if (user.role === 'admin') {
   manageSubscription();
 }
 ```
 
-Both changes are technically valid.
+**Git:** `✓ Merge successful — No conflicts`  
+**Tests:** `✓ 42 / 42 passing`
 
-Git:
+Then MergeMind runs:
 
-- ✅ Merge successful
-- ✅ No conflicts
-
-Existing tests:
-
-- ✅ 42 / 42 passing
-
-Everything looks safe. Then MergeMind runs:
-
-```text
+```
 SEMANTIC CONFLICT DETECTED
 
-Requirement:
-  Only organization owners may manage subscriptions.
+Requirement:  Only organization owners may manage subscriptions.
+Auth assumes: privileged role = "owner"
+Billing checks: role === "admin"
 
-Authentication assumption:
-  Privileged role = owner
-
-Billing assumption:
-  Privileged role = admin
-
-Affected files:
-  auth/roles.ts
-  billing/permissions.ts
-
-Severity:
-  HIGH
+Affected files: auth/roles.ts  ·  billing/permissions.ts
+Severity: HIGH
 ```
 
-The code merged. The meaning did not. That is the moment judges remember.
+The code merged. **The meaning did not.**
 
 ---
 
-## How It Works
+## Architecture
 
-### Step 1 — Developer gives Bob a feature
-
-Example:
-
-> Add organization billing with owner-only subscription management.
-
-Bob understands the requirement and repository.
-
-### Step 2 — Parallel Bob agents analyze the change
-
-MergeMind launches specialized analysis tasks:
-
-- **Intent Agent** — Understands what the developer actually requested. Extracts rules such as: *Only organization owners can manage subscriptions.*
-- **Change Agent** — Analyzes the modified code and determines what behavior was introduced.
-- **Contract Agent** — Looks at APIs, function signatures, schemas, types, and database models, and identifies assumptions between components.
-- **Dependency Agent** — Determines which other parts of the repository depend on those assumptions.
-- **Adversary Agent** — Its job is not to agree with the implementation. Its job is to ask: *"How could these changes be mutually inconsistent?"*
-
-This gives Bob a very visible role in the product rather than simply using Bob to write our frontend.
-
-### Step 3 — Assumption extraction
-
-MergeMind converts agent findings into structured assumptions. For example:
-
-**Assumption A**
-
-- Source: `auth/roles.ts`
-- Statement: The privileged organization role is `"owner"`
-- Depends on: `User.role`
-
-**Assumption B**
-
-- Source: `billing/permissions.ts`
-- Statement: The privileged organization role is `"admin"`
-- Depends on: `User.role`
-
-Now MergeMind can compare meaning, not just code.
-
-### Step 4 — Agent Conflict Graph
-
-MergeMind visualizes relationships between:
-
-```text
-REQUIREMENT
-     │
-     ↓
-ASSUMPTIONS
-     │
-     ↓
-FILES
-     │
-     ↓
-DEPENDENCIES
-     │
-     ↓
-TESTS
+```
+mergemind/
+├── apps/
+│   ├── ui/           ← React + Vite frontend (5 screens + demo flow)
+│   └── api/          ← Express API server
+├── packages/
+│   └── semantic-engine/  ← Deterministic conflict detection (no LLM required)
 ```
 
-Example:
+### Frontend (`apps/ui`)
 
-```text
-                    REQUIREMENT
-                         │
-          Owners manage subscriptions
-                         │
-               ┌─────────┴─────────┐
-               ↓                   ↓
-        Authentication          Billing
-               │                   │
-      privileged = owner   privileged = admin
-               │                   │
-               └─────────┬─────────┘
-                         ↓
+Built from the **ziad-conflict-graph-ui** branch — a polished React 18 + Vite application with:
 
-                 SEMANTIC CONFLICT
+- **Screen 1 — Verify Change**: Enter repository, feature request, branch names
+- **Screen 2 — Bob Analysis**: Live progress of 5 parallel Bob agents (Intent, Change, Contract, Dependency, Adversary)
+- **Screen 3 — Conflict Graph**: SVG conflict graph with scenario selector and Git vs MergeMind comparison
+- **Screen 4 — Conflict Detail**: Full evidence, assumption clash, Bob-proposed resolution
+- **Screen 5 — Change Passport**: Permanent verification record with JSON export
 
-                         ↓
+Also includes a **guided judge demo flow** at `/demo` — 10 story beats, auto-advancing agents, complete narration cues.
 
-                billing permission
-                     may fail
+### Semantic Engine (`packages/semantic-engine`)
+
+Built from the **hassan-dev** branch — a pure TypeScript, zero-LLM conflict detection engine:
+
+- **Extraction Pipeline**: Parses feature requirements and code diffs using regex patterns to extract `SemanticAssumption` records
+- **Normalization Layer**: Canonicalizes entity names, predicates, and values for comparison
+- **Conflict Detector**: Groups normalized assumptions by shared subject and detects value mismatches
+- **Report Builder**: Produces explainable `ConflictReport` objects with full evidence chains
+
+### API Server (`apps/api`)
+
+Express REST API that orchestrates the semantic engine:
+
+```
+POST /api/verify        → starts async analysis, returns sessionId
+GET  /api/session/:id   → poll for results
+GET  /api/health        → health check
 ```
 
-This becomes the signature visual of the product.
-
 ---
 
-## The Three Conflicts We Detect
+## Quick Start
 
-For the 48-hour MVP, MergeMind focuses on only three high-value conflict classes.
+### Prerequisites
 
-### 1. Business-rule conflicts
+- Node.js 18+
+- npm 9+
 
-Two agents interpret a requirement differently.
-
-- Agent A: Owner can edit.
-- Agent B: Admin can edit.
-
-### 2. Contract conflicts
-
-One component changes something another component depends on.
-
-- API now returns: `userId`
-- Frontend expects: `user_id`
-
-The files may never touch each other. Git won't detect anything. MergeMind does.
-
-### 3. Dependency conflicts
-
-One change invalidates an assumption elsewhere.
-
-- Agent A: Makes email optional.
-- Agent B: Notification service assumes every user has email.
-
-Again:
-
-- Git: ✅ clean merge
-- MergeMind: ⚠️ semantic dependency conflict
-
----
-
-## The Second Killer Feature: Change Passport
-
-After verification, MergeMind generates a permanent **Change Passport**.
-
-Instead of a pull request containing only code, it also contains evidence explaining why that code should be trusted.
-
-```text
-MERGEMIND CHANGE PASSPORT
-
-Feature:              Organization Billing
-Intent:               Only organization owners may manage subscriptions.
-Files Changed:        12
-Components:           Authentication, Billing, Database, API
-Assumptions Found:    8
-Verified:             7
-Conflicts Found:      2
-Resolved:             2
-Tests:                29 / 29
-Requirement Coverage: 94%
-Remaining Risk:       Webhook retry behavior not verified.
-Verification Status:  PASS
-```
-
-Future developers can understand:
-
-- what changed
-- why it changed
-- what assumptions exist
-- what dependencies were affected
-- what was verified
-- what is still uncertain
-
-And future AI agents can read the same information.
-
----
-
-## Why This Is Not Another Code Reviewer
-
-A normal AI code reviewer asks:
-
-> Is this code good?
-
-MergeMind asks:
-
-> Do all the changes still describe the same system?
-
-That is fundamentally different.
-
-We're not trying to replace:
-
-- GitHub
-- testing
-- code review
-- static analysis
-- AI coding assistants
-
-We're adding a missing layer between AI coding and production.
-
----
-
-## Why Now
-
-AI development is moving toward parallel agents. One developer may soon supervise:
-
-```text
-Developer
-   ↓
-Agent A, Agent B, Agent C, Agent D, Agent E
-```
-
-The bottleneck is no longer only:
-
-> Can AI generate code?
-
-It becomes:
-
-> Can we trust several AI agents changing one system simultaneously?
-
-MergeMind is infrastructure for that world.
-
----
-
-## Why IBM Bob Is Essential
-
-IBM Bob is not simply a tool we use while programming MergeMind. Bob becomes part of the actual workflow.
-
-We showcase:
-
-- **Bob Agent Mode** — for repository and requirement analysis.
-- **Parallel Tasks** — for simultaneous independent analysis.
-- **Subagents** — for specialized reasoning: intent, contracts, dependencies, adversarial verification.
-- **Document Understanding** — for reading PRDs, READMEs, ADRs, API specifications, and repository documentation.
-
-This means the submission demonstrates Bob's advanced capabilities directly.
-
----
-
-## What We Actually Build in 48 Hours
-
-We deliberately avoid building a giant platform. The hackathon version has one polished workflow.
-
-### Screen 1 — Verify Change
-
-Developer selects:
-
-- Repository
-- Feature request
-- Branches / changes
-
-Button: **Verify with Bob**
-
-### Screen 2 — Bob Analysis
-
-Show agents running:
-
-```text
-Intent Agent        Complete
-Contract Agent      Complete
-Dependency Agent    Complete
-Adversary Agent     Running
-```
-
-This makes Bob usage visible in the demo.
-
-### Screen 3 — Conflict Graph
-
-The product shows: **2 semantic conflicts found**
-
-Click a conflict. Example:
-
-- Requirement: Owner-only billing
-- Authentication: `role = owner`
-- Billing: `role = admin`
-- Conflict: Authorization assumptions disagree
-
-Then show the exact affected files.
-
-### Screen 4 — Resolution
-
-Bob proposes:
-
-- Update billing authorization to use `"owner"`
-- Add regression test: `"admin cannot manage organization subscription"`
-
-Developer approves.
-
-### Screen 5 — Change Passport
-
-Show the final verification report. Done.
-
-That is the entire MVP.
-
----
-
-## The Demo (3:00)
-
-**0:00–0:20** — Show two AI-generated branches. Say:
-
-> AI agents increasingly work in parallel. But two agents can both write valid code and still disagree about what the software means.
-
-**0:20–0:35** — Merge the branches. Git: *No conflicts.* Tests: *Passing.* Then say:
-
-> Everything looks safe.
-
-**0:35–1:20** — Run MergeMind. Bob tasks start. The Conflict Graph appears.
-
-> HIGH SEVERITY SEMANTIC CONFLICT — Authentication uses `owner`, Billing expects `admin`.
-
-Then:
-
-> Git understood the text. MergeMind understood the intent.
-
-**1:20–1:50** — Show the requirement that caused the conflict. Show the exact assumptions. Show dependency tracing.
-
-**1:50–2:15** — Bob generates the missing regression test. Run tests.
-
-- Before: 42 tests passing
-- After: 43 tests passing
-
-**2:15–2:40** — Show the Change Passport. Conflict resolved, requirement verified, dependencies verified, tests verified.
-
-**2:40–3:00** — Finish with:
-
-> Git tells developers whether code can merge. MergeMind tells AI agents whether their decisions can coexist.
-
----
-
-## The Measurable Result
-
-We benchmark semantic verification manually versus MergeMind.
-
-| Metric | Manual review | MergeMind |
-| --- | --- | --- |
-| Verification time | 27 minutes | 3 minutes 40 seconds |
-
-We can also show:
-
-- Semantic conflicts found: 3
-- Missing regression tests found: 2
-- Cross-component dependencies identified: 7
-- Verification time reduced: 86%
-
-That gives judges actual impact instead of only an AI demo.
-
----
-
-## Why Developers Would Use It
-
-Today:
-
-```text
-Developer → AI Agent → Code → Git → Review → Production
-```
-
-Tomorrow:
-
-```text
-Developer → Many AI Agents → Many Changes → MergeMind → Verified Change → Production
-```
-
-MergeMind becomes the trust layer between autonomous development and production.
-
----
-
-## Future Vision
-
-Eventually MergeMind could work across:
-
-- IBM Bob
-- Codex
-- Claude Code
-- Cursor
-- Copilot
-- Kiro
-- custom coding agents
-
-Every AI-generated change gets a machine-readable history containing:
-
-```text
-INTENT
-ASSUMPTIONS
-DEPENDENCIES
-EVIDENCE
-TESTS
-UNRESOLVED RISKS
-```
-
-So another agent months later doesn't only receive:
-
-> Here is the code.
-
-It receives:
-
-> Here is why the code exists and what must remain true for it to stay correct.
-
----
-
-## Final Positioning
-
-**MergeMind — The verification layer for multi-agent software development.**
-
-Git catches code conflicts. MergeMind catches meaning conflicts.
-
-And our central question is:
-
-> When five AI agents write your software, who checks that they still agree with each other?
-
-**MergeMind does.**
-
----
-
-## Team Integration Contract
-
-This branch is the stable foundation. Teammates branch from here and merge back
-without breaking each other. Rules below are binding until the demo ships.
-
-### Quick start (teammate clone → running)
+### Run the frontend (demo mode — fully standalone)
 
 ```bash
-pnpm install        # requires Node >= 18, pnpm >= 11
-pnpm check          # build + typecheck + lint + format:check + test — must be green
-pnpm dev            # Next.js app on http://localhost:3000 (see .env.example)
+cd apps/ui
+npm install
+npm run dev
+# → http://localhost:5173
+# → Navigate to /demo for the judge demo flow
 ```
 
-Health probes: `GET /health` and tRPC `health.check`.
-
-### Where new modules live
-
-| Work | Location | Notes |
-|---|---|---|
-| Real conflict detectors | `packages/verification/src/` — implement `ConflictDetector`, inject into `runVerification()` | `StubConflictDetector` stays as the fallback |
-| Bob subagent runners | `packages/analysis/src/` — implement `AgentRunner` per agent, register in `AnalysisPipeline.create()` | Stubs stay until your branch lands |
-| New repo sources | `packages/git-ingest/src/adapters/` — implement `IngestAdapter` (+ `GitRunner` for shell) | Keep shell behind `GitRunner` so tests stay mockable |
-| Conflict graph UI | `apps/web/src/` new screens/components | `VerifyForm` + `page.tsx` (Screen 1) are the composition root |
-| Resolution workflow | New tRPC sub-router in `packages/api/src/index.ts` (see `EXTENSION POINT` comment) | Keep `health` + `verify` namespaces stable |
-| Passport generation | New service/branch — only the `ChangePassportDraft` **type** exists so far | Do not invent a second passport shape |
-| Test data | `packages/fixtures/` (`getScenario()`, `allScenarios`) for detector/passport tests; `@mergemind/domain/testing` factories and `@mergemind/git-ingest/testing` builders for unit tests | Raw snapshots live in `fixtures/` (demo repo) and `apps/web/src/fixtures/` (UI seed) — do not fork new copies without need |
-
-### Shared types to reuse (do not duplicate)
-
-`FeatureRequest`, `RepositorySource`, `ChangedFile`, `CodeEvidence`, `Assumption`,
-`ConflictFinding`, `VerificationResult`, `ChangePassportDraft` — all from
-`@mergemind/domain`, validated at runtime by `@mergemind/domain/schemas`.
-Deprecated aliases (`FeatureRequirement`, `RepositoryContext`, `FileDiff`,
-`SemanticConflict`) exist for backward compatibility only — new code must use
-the canonical names.
-
-### Stable interfaces (avoid changing unless necessary)
-
-- `packages/domain` types + zod schemas (every package breaks on field changes)
-- `IngestAdapter`, `AgentRunner`, `ConflictDetector` contracts
-- tRPC `health.*` / `verify.*` procedure names and the `AppRouter` type
-- `pnpm check` gate set (run it locally before merge — no CI workflow)
-
-### Commands that must pass before merge
+### Run both frontend and API server
 
 ```bash
-pnpm check   # = build && typecheck && lint && format:check && test
+# Terminal 1 — API server
+cd apps/api
+npm install
+npm run dev
+# → http://localhost:4000
+
+# Terminal 2 — UI (already proxies /api to :4000)
+cd apps/ui
+npm install
+npm run dev
+# → http://localhost:5173
 ```
 
-Run `pnpm check` locally before every merge. A red gate blocks merge — fix the
-baseline you touched; never weaken a gate to make it pass.
+### Build for production
 
-### What is deliberately NOT built yet
-
-Semantic conflict detection, Bob multi-agent orchestration, conflict-graph UI,
-automated resolution, and Change Passport generation exist here as **types,
-interfaces, and stubs only**. Do not mistake them for implementations — the
-feature branches own them.
+```bash
+cd apps/ui
+npm run build
+# → dist/ is a static bundle ready for any hosting provider
+```
 
 ---
 
-## Testing and Quality Gates
+## The Demo Flow
 
-Testing uses **Jest 29 + ts-jest (ESM)** — one suite per package under
-`packages/*/src/*.test.ts`. Tests are deterministic: in-memory adapters,
-pasted diffs, and fixed factories. No network calls in unit tests.
+Navigate to `http://localhost:5173/demo` to run the guided 10-step judge demo:
 
-```bash
-pnpm install          # install all workspace dependencies (requires Node >= 18, pnpm >= 11)
-pnpm test             # run all package test suites
-pnpm lint             # eslint across packages/* and apps/*
-pnpm typecheck        # tsc --noEmit across packages/* and apps/*
-pnpm build            # production build (packages, then Next.js app)
-pnpm format:check     # prettier check (write with `pnpm format`)
-pnpm check            # ← the one quality command: build + typecheck + lint + format:check + test
+| Step | Screen | What happens |
+|------|--------|--------------|
+| 1 | Verify | Pre-filled form with the Org Billing scenario |
+| 2 | Verify | Git verdict strip highlighted ("Everything looks safe") |
+| 3 | Analysis | 5 Bob agents animate with real findings |
+| 4 | Graph | Conflict map revealed — nodes pulse |
+| 5 | Graph | Conflict node highlighted |
+| 6 | Detail | Full evidence chain displayed |
+| 7 | Detail | Bob resolution accepted |
+| 8 | Passport | 43/43 tests — regression test added |
+| 9 | Passport | Full Change Passport PASS |
+| 10 | Done | Restart CTA |
+
+**Narration cue at step 2:**  
+> *"Everything looks safe."*
+
+**Narration cue at step 6:**  
+> *"Git understood the text. MergeMind understood the intent."*
+
+**Closing line:**  
+> *"Git tells developers whether code can merge. MergeMind tells AI agents whether their decisions can coexist."*
+
+---
+
+## Three Conflict Classes
+
+### 1 — Business-rule conflict
+Two agents interpret a requirement differently.  
+*Example: Auth assigns `role="owner"`, Billing checks `role==="admin"`.*
+
+### 2 — Contract conflict
+One component changes something another depends on.  
+*Example: API returns `userId`, Frontend expects `user_id`.*
+
+### 3 — Dependency conflict
+One change invalidates an assumption elsewhere.  
+*Example: Email made optional in DB, Notification service assumes every user has email.*
+
+---
+
+## Branches Merged
+
+| Branch | Contributor | What it provides |
+|--------|------------|-----------------|
+| `main` | Zeyad | Repository scaffold + README |
+| `abd0zDev` | Abd0z | Monorepo structure, domain models, tRPC API skeleton, git-ingest |
+| `amr` | Amr | Ingestion package (dist) |
+| `ziad-conflict-graph-ui` | Zeyad | Complete React UI — all 5 screens + demo flow + design system |
+| `hassan-dev` | Hassan | Semantic engine — extraction, normalization, conflict detection |
+
+---
+
+## IBM Bob Integration
+
+The analysis pipeline is designed for direct IBM Bob subagent execution:
+
+```
+Intent Agent      → extracts business rules from the feature request
+Change Agent      → analyzes introduced behavior in each diff
+Contract Agent    → inspects API signatures, schemas, and data contracts
+Dependency Agent  → traces which modules depend on changed assumptions
+Adversary Agent   → challenges internal consistency across all agents
 ```
 
-Run `pnpm check` before every push. Every stage must pass — a red gate
-blocks merge. There is currently no CI workflow (it was removed), so the
-local `pnpm check` run is the quality gate.
+In the hackathon MVP, the deterministic semantic engine fills this role without LLM calls. The `AgentRunner` interface in the analysis package is the extension point for real Bob subagents.
 
-Environment variables need no secrets: the only variables (`PORT`,
-`VERCEL_URL`, see `.env.example`) have safe defaults and are validated at
-startup by `apps/web/src/lib/env.ts`.
+---
 
-**Deployment:** no automatic deployment is configured.
+*MergeMind — IBM TechXchange Hackathon 2024*  
+*Powered by IBM Bob*
