@@ -23,7 +23,11 @@ import {
   AnalysisStatus,
   SourceType,
 } from '@mergemind/semantic-engine';
-import type { AnalysisInput, SemanticAnalysisResult } from '@mergemind/semantic-engine';
+import type {
+  AnalysisInput,
+  SemanticAnalysisResult,
+  ConflictReport,
+} from '@mergemind/semantic-engine';
 
 // ── Types for the HTTP API ────────────────────────────────────────────────────
 
@@ -44,6 +48,8 @@ interface SessionRecord {
   startedAt: string;
   completedAt?: string;
   result?: SemanticAnalysisResult;
+  /** Full explainable reports — served to UI clients so findings need no re-derivation. */
+  reports?: readonly ConflictReport[];
   error?: string;
 }
 
@@ -186,13 +192,13 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
     };
 
     session.result = result;
+    session.reports = reports;
     session.status = 'COMPLETE';
     session.completedAt = new Date().toISOString();
 
     console.log(
       `Session ${session.id}: ${result.status} — ${rawConflicts.length} conflicts, ${assumptions.length} assumptions`,
     );
-    void reports; // available for extended logging
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`Session ${session.id} error:`, message);
@@ -236,6 +242,7 @@ function formatSession(session: SessionRecord) {
         affectedEntity: c.affectedEntity,
         affectedFiles: c.affectedFiles ?? [],
       })),
+      reports: session.reports ?? [],
       warnings: r.warnings ?? [],
     },
   };

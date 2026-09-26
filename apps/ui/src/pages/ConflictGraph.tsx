@@ -1,28 +1,41 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { GraphCanvas } from '@/components/GraphCanvas';
 import { SeverityBadge } from '@/components/StatusBadge';
 import { GRAPH_SCENARIOS, type GraphScenario } from '@/graph/graphScenarios';
+import { useLiveSession } from '@/hooks/useLiveSession';
 import type { Conflict } from '@/types/semantic';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Conflict Graph page — scenario-aware, uses data-driven GraphCanvas
+// Conflict Graph page — scenario-aware, uses data-driven GraphCanvas.
+// When navigated with a live { sessionId }, the real analysis result is shown
+// instead of fixtures. Without one, fixture scenarios render unchanged.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function ConflictGraph() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const liveId = (location.state as { sessionId?: string } | null)?.sessionId;
+  const { session: liveSession, loading: liveLoading } = useLiveSession(liveId);
+
   const [scenarioIdx, setScenarioIdx] = useState(0);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
 
+  const live = liveSession !== null;
+
   const scenario = GRAPH_SCENARIOS[scenarioIdx]!;
-  const conflicts = scenario.graph.conflicts;
+  // Live result wins when present; fixtures otherwise (unchanged behavior).
+  const graph = live ? liveSession.graph : scenario.graph;
+  const conflicts = graph.conflicts;
   const conflictCount = conflicts.length;
   const highCount = conflicts.filter((c) => c.severity === 'HIGH').length;
   const medCount = conflicts.filter((c) => c.severity === 'MEDIUM').length;
 
   const handleConflictClick = (conflictId: string) => {
     setSelectedId(conflictId);
-    navigate('/detail', { state: { conflictId, scenarioIdx } });
+    navigate('/detail', {
+      state: { conflictId, scenarioIdx, sessionId: live ? liveSession.id : undefined },
+    });
   };
 
   return (
@@ -36,61 +49,91 @@ export function ConflictGraph() {
           {conflictCount === 0 && <span className="badge badge-pass">No conflicts</span>}
         </div>
         <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          Git reported a clean merge. Bob found semantic conflicts hidden inside the code. Select a
-          scenario below, then click a conflict node to inspect the assumption mismatch.
+          Git reported a clean merge. Bob found semantic conflicts hidden inside the code.{' '}
+          {live
+            ? 'Live analysis result below — click a conflict node to inspect the real evidence.'
+            : 'Select a scenario below, then click a conflict node to inspect the assumption mismatch.'}
         </p>
       </div>
 
-      {/* ── Scenario selector ── */}
-      <div style={{ marginBottom: 'var(--sp-6)' }}>
+      {liveLoading && !live && (
+        <div
+          className="card-sm"
+          style={{ marginBottom: 'var(--sp-6)', color: 'var(--text-muted)', fontSize: 13 }}
+        >
+          Loading live analysis result…
+        </div>
+      )}
+
+      {/* ── Scenario selector (fixture browsing; hidden for live results) ── */}
+      {!live && (
+        <div style={{ marginBottom: 'var(--sp-6)' }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: 'var(--text-muted)',
+              marginBottom: 'var(--sp-2)',
+            }}
+          >
+            Demo Scenario
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
+            {GRAPH_SCENARIOS.map((s, idx) => (
+              <ScenarioTab
+                key={s.id}
+                scenario={s}
+                isActive={idx === scenarioIdx}
+                onClick={() => {
+                  setScenarioIdx(idx);
+                  setSelectedId(undefined);
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Git vs MergeMind comparison strip (fixture scenarios only) ── */}
+      {!live && (
         <div
           style={{
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            color: 'var(--text-muted)',
-            marginBottom: 'var(--sp-2)',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 'var(--sp-4)',
+            marginBottom: 'var(--sp-6)',
           }}
         >
-          Demo Scenario
+          <StatusStrip icon="git" label="Git verdict" items={scenario.gitVerdict} />
+          <StatusStrip icon="mm" label="MergeMind verdict" items={scenario.mmVerdict} />
         </div>
-        <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
-          {GRAPH_SCENARIOS.map((s, idx) => (
-            <ScenarioTab
-              key={s.id}
-              scenario={s}
-              isActive={idx === scenarioIdx}
-              onClick={() => {
-                setScenarioIdx(idx);
-                setSelectedId(undefined);
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* ── Git vs MergeMind comparison strip ── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 'var(--sp-4)',
-          marginBottom: 'var(--sp-6)',
-        }}
-      >
-        <StatusStrip icon="git" label="Git verdict" items={scenario.gitVerdict} />
-        <StatusStrip icon="mm" label="MergeMind verdict" items={scenario.mmVerdict} />
-      </div>
+      )}
 
       {/* ── Graph canvas ── */}
       <div className="card" style={{ marginBottom: 'var(--sp-6)', padding: 'var(--sp-4)' }}>
         <div className="row" style={{ marginBottom: 'var(--sp-3)' }}>
           <div className="stack gap-1">
-            <h3 style={{ fontSize: 14 }}>Semantic Conflict Map</h3>
+            <div className="row gap-2" style={{ alignItems: 'center' }}>
+              <h3 style={{ fontSize: 14 }}>Semantic Conflict Map</h3>
+              {live && (
+                <span className="badge" style={{ fontSize: 10 }}>
+                  ● Live result
+                </span>
+              )}
+            </div>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {scenario.subtitle} · {scenario.graph.nodes.length} nodes ·{' '}
-              {scenario.graph.edges.length} relationships
+              {live ? (
+                <>
+                  Live analysis · {graph.nodes.length} nodes · {graph.edges.length} relationships
+                </>
+              ) : (
+                <>
+                  {scenario.subtitle} · {scenario.graph.nodes.length} nodes ·{' '}
+                  {scenario.graph.edges.length} relationships
+                </>
+              )}
             </p>
           </div>
           <div style={{ marginLeft: 'auto' }}>
@@ -99,7 +142,7 @@ export function ConflictGraph() {
         </div>
 
         <GraphCanvas
-          graph={scenario.graph}
+          graph={graph}
           onConflictClick={handleConflictClick}
           selectedConflictId={selectedId}
         />
@@ -120,7 +163,7 @@ export function ConflictGraph() {
       {/* ── Conflict list ── */}
       <div>
         <h3 style={{ marginBottom: 'var(--sp-4)', fontSize: 14 }}>
-          Detected Conflicts — {scenario.title}
+          Detected Conflicts — {live ? 'live analysis' : scenario.title}
         </h3>
         {conflicts.length === 0 ? (
           <div className="card-sm" style={{ color: 'var(--text-muted)', fontSize: 13 }}>

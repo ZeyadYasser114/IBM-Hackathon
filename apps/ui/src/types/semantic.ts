@@ -109,6 +109,10 @@ export interface VerifyChangeInput {
   featureRequest: string;
   branchA: string;
   branchB: string;
+  /** Optional code diff for branch A — sent to the API when provided. */
+  codeA?: string;
+  /** Optional code diff for branch B — sent to the API when provided. */
+  codeB?: string;
 }
 
 // ── Change Passport ───────────────────────────────────────────────────────────

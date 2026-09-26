@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getSession } from '@/adapters/semanticAdapter';
+import { DEMO_SESSION } from '@/data/demoFixtures';
 import type { AnalysisSession } from '@/types/semantic';
 import { AgentProgress } from '@/components/AgentProgress';
 
@@ -105,39 +106,79 @@ export function Analysis() {
       </div>
 
       {/* ── CTA when done ── */}
-      {done && (
-        <div
-          className="fade-in"
-          style={{
-            background: 'var(--high-bg)',
-            border: '1px solid var(--high-border)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--sp-6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 'var(--sp-4)',
-          }}
-        >
-          <div>
-            <div className="row gap-2" style={{ marginBottom: 4 }}>
-              <span style={{ fontSize: 18 }}>⚠</span>
-              <h3 style={{ color: 'var(--high)' }}>Semantic Conflict Detected</h3>
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+      {done && session && (
+        <AnalysisCta
+          session={session}
+          onViewGraph={() => navigate('/graph', { state: { sessionId } })}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Completion CTA — real counts for live sessions, fixture text otherwise ───
+
+function AnalysisCta({
+  session,
+  onViewGraph,
+}: {
+  session: AnalysisSession;
+  onViewGraph: () => void;
+}) {
+  const live = session.id !== DEMO_SESSION.id;
+  const conflicts = session.graph.conflicts;
+  const highCount = conflicts.filter((c) => c.severity === 'HIGH').length;
+  const passed = conflicts.length === 0;
+
+  return (
+    <div
+      className="fade-in"
+      style={{
+        background: passed ? 'var(--low-bg)' : 'var(--high-bg)',
+        border: `1px solid ${passed ? 'var(--low-border)' : 'var(--high-border)'}`,
+        borderRadius: 'var(--radius-lg)',
+        padding: 'var(--sp-6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 'var(--sp-4)',
+      }}
+    >
+      <div>
+        <div className="row gap-2" style={{ marginBottom: 4 }}>
+          <span style={{ fontSize: 18 }}>{passed ? '✅' : '⚠'}</span>
+          <h3 style={{ color: passed ? 'var(--pass)' : 'var(--high)' }}>
+            {passed ? 'No Semantic Conflicts' : 'Semantic Conflict Detected'}
+          </h3>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {live ? (
+            passed ? (
+              <>
+                Live analysis verified {session.passport.assumptionsFound ?? 0} assumptions with no
+                conflicts — the changes agree.
+              </>
+            ) : (
+              <>
+                Live analysis found{' '}
+                <strong style={{ color: 'var(--high)' }}>
+                  {conflicts.length} semantic conflict{conflicts.length === 1 ? '' : 's'}
+                  {highCount > 0 ? ` (${highCount} high-severity)` : ''}
+                </strong>{' '}
+                in this change set.
+              </>
+            )
+          ) : (
+            <>
               Bob found <strong style={{ color: 'var(--high)' }}>1 high-severity</strong> semantic
               conflict that passed Git merge and all 42 tests.
-            </p>
-          </div>
-          <button
-            className="btn btn-danger"
-            onClick={() => navigate('/graph', { state: { sessionId } })}
-            style={{ flexShrink: 0 }}
-          >
-            View Conflict Graph →
-          </button>
-        </div>
-      )}
+            </>
+          )}
+        </p>
+      </div>
+      <button className="btn btn-danger" onClick={onViewGraph} style={{ flexShrink: 0 }}>
+        View Conflict Graph →
+      </button>
     </div>
   );
 }

@@ -6,25 +6,32 @@ import {
   serializePassport,
   type PassportVariant,
 } from '@/data/passportFixtures';
+import { useLiveSession } from '@/hooks/useLiveSession';
 import type { ChangePassport } from '@/types/semantic';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ChangePassport page
 //
-// Shows the selected passport variant (PASS / FAIL / PARTIAL) through the
-// reusable PassportCard component. Provides real JSON download export.
+// Shows the live analysis passport when navigated with a { sessionId },
+// otherwise the fixture variants (unchanged behavior). Provides real JSON
+// download export in both modes.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function ChangePassportPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const navState = location.state as { resolved?: boolean; sessionId?: string } | null;
+
+  // Live passport when a session id is present.
+  const { session: liveSession, loading: liveLoading } = useLiveSession(navState?.sessionId);
+  const livePassport: ChangePassport | null = liveSession ? liveSession.passport : null;
 
   // If navigated from ConflictDetail with resolved=true, default to PASS
-  const fromResolved = (location.state as { resolved?: boolean } | null)?.resolved === true;
+  const fromResolved = navState?.resolved === true;
   const [variantIdx, setVariantIdx] = useState(fromResolved ? 0 : 1);
 
   const variant = PASSPORT_VARIANTS[variantIdx]!;
-  const passport = variant.passport;
+  const passport = livePassport ?? variant.passport;
 
   // ── JSON export ──────────────────────────────────────────────────────────
   const handleExport = () => {
@@ -43,7 +50,13 @@ export function ChangePassportPage() {
 
   // ── Navigate to conflict detail ───────────────────────────────────────────
   const handleInspectConflict = (conflictId: string) => {
-    navigate('/detail', { state: { conflictId, scenarioIdx: 0 } });
+    navigate('/detail', {
+      state: {
+        conflictId,
+        scenarioIdx: 0,
+        ...(navState?.sessionId ? { sessionId: navState.sessionId } : {}),
+      },
+    });
   };
 
   return (
@@ -83,32 +96,49 @@ export function ChangePassportPage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          VARIANT SELECTOR (hidden in print)
+          VARIANT SELECTOR (hidden in print; fixture mode only)
       ══════════════════════════════════════════════════════════════ */}
-      <div className="print-hide" style={{ marginBottom: 'var(--sp-5)' }}>
+      {!livePassport && (
+        <div className="print-hide" style={{ marginBottom: 'var(--sp-5)' }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: 'var(--text-muted)',
+              marginBottom: 'var(--sp-2)',
+            }}
+          >
+            Demo variant
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
+            {PASSPORT_VARIANTS.map((v, idx) => (
+              <VariantTab
+                key={v.id}
+                variant={v}
+                isActive={idx === variantIdx}
+                onClick={() => setVariantIdx(idx)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {livePassport && (
+        <div className="print-hide" style={{ marginBottom: 'var(--sp-5)' }}>
+          <span className="badge" style={{ fontSize: 10 }}>
+            ● Live result — tests & coverage not measured for this run
+          </span>
+        </div>
+      )}
+      {navState?.sessionId && liveLoading && !livePassport && (
         <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            color: 'var(--text-muted)',
-            marginBottom: 'var(--sp-2)',
-          }}
+          className="print-hide card-sm"
+          style={{ marginBottom: 'var(--sp-5)', color: 'var(--text-muted)', fontSize: 13 }}
         >
-          Demo variant
+          Loading live passport…
         </div>
-        <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
-          {PASSPORT_VARIANTS.map((v, idx) => (
-            <VariantTab
-              key={v.id}
-              variant={v}
-              isActive={idx === variantIdx}
-              onClick={() => setVariantIdx(idx)}
-            />
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════
           PASSPORT CARD

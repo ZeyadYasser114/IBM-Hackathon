@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ALL_SCENARIO_CONFLICTS } from '@/data/demoFixtures';
+import { useLiveSession } from '@/hooks/useLiveSession';
 import { SeverityBadge } from '@/components/StatusBadge';
 import type { Conflict, EvidenceExcerpt, Assumption } from '@/types/semantic';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ConflictDetail — full auditable evidence experience
+//
+// Resolves the conflict from a live analysis session when navigated with a
+// { sessionId }, otherwise from fixture scenarios (unchanged behavior).
 //
 // States handled:
 //   1. No conflict selected        → empty-state prompt
@@ -17,13 +21,25 @@ import type { Conflict, EvidenceExcerpt, Assumption } from '@/types/semantic';
 export function ConflictDetail() {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as { conflictId?: string; scenarioIdx?: number } | null;
+  const state = location.state as {
+    conflictId?: string;
+    scenarioIdx?: number;
+    sessionId?: string;
+  } | null;
 
-  // ── Resolve the conflict from the correct scenario ────────────────────────
+  // ── Resolve the conflict: live session first, fixtures as fallback ────────
+  const liveId = state?.sessionId;
+  const { session: liveSession, loading: liveLoading } = useLiveSession(liveId);
   const scenarioIdx = state?.scenarioIdx ?? 0;
   const conflictId = state?.conflictId;
   const allConflicts = ALL_SCENARIO_CONFLICTS[scenarioIdx] ?? ALL_SCENARIO_CONFLICTS[0]!;
-  const conflict = conflictId ? allConflicts.find((c) => c.id === conflictId) : undefined;
+  const liveConflict =
+    liveSession && conflictId
+      ? liveSession.graph.conflicts.find((c) => c.id === conflictId)
+      : undefined;
+  const conflict =
+    liveConflict ?? (conflictId ? allConflicts.find((c) => c.id === conflictId) : undefined);
+  const backState = liveId ? { sessionId: liveId } : undefined;
 
   // ── Resolution state ───────────────────────────────────────────────────────
   const [resolved, setResolved] = useState(false);
@@ -38,13 +54,27 @@ export function ConflictDetail() {
 
   // ── Empty state ────────────────────────────────────────────────────────────
   if (!conflict) {
+    if (liveId && liveLoading) {
+      return (
+        <div className="fade-in" style={{ maxWidth: 800, margin: '0 auto' }}>
+          <BackButton onClick={() => navigate('/graph', { state: backState })} />
+          <div className="card-sm" style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+            Loading live conflict evidence…
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="fade-in" style={{ maxWidth: 800, margin: '0 auto' }}>
-        <BackButton onClick={() => navigate('/graph')} />
-        <EmptyState onGoToGraph={() => navigate('/graph')} />
+        <BackButton onClick={() => navigate('/graph', { state: backState })} />
+        <EmptyState onGoToGraph={() => navigate('/graph', { state: backState })} />
       </div>
     );
   }
+
+  // Passport navigation preserves the live session when present.
+  const toPassport = (extra?: { resolved?: boolean }) =>
+    navigate('/passport', { state: { ...(liveId ? { sessionId: liveId } : {}), ...extra } });
 
   const isHighConfidence = conflict.confidence >= 85;
   const severityColor =
@@ -68,7 +98,7 @@ export function ConflictDetail() {
 
   return (
     <div className="fade-in" style={{ maxWidth: 860, margin: '0 auto' }}>
-      <BackButton onClick={() => navigate('/graph')} />
+      <BackButton onClick={() => navigate('/graph', { state: backState })} />
 
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 1 — Identity header
@@ -282,7 +312,7 @@ export function ConflictDetail() {
                   'Accept resolution'
                 )}
               </button>
-              <button className="btn btn-ghost" onClick={() => navigate('/passport')}>
+              <button className="btn btn-ghost" onClick={() => toPassport()}>
                 Skip for now
               </button>
             </div>
@@ -306,7 +336,7 @@ export function ConflictDetail() {
           </div>
           <ResolutionSummary conflict={conflict} />
           <div style={{ marginTop: 'var(--sp-4)' }}>
-            <button className="btn btn-primary" onClick={() => navigate('/passport')}>
+            <button className="btn btn-primary" onClick={() => toPassport({ resolved: true })}>
               View Change Passport →
             </button>
           </div>
