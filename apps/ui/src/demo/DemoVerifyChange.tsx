@@ -30,6 +30,8 @@ export function DemoVerifyChange() {
   const [branchB, setBranchB] = useState(DEFAULT_INPUT.branchB);
   const [featureRequest, setFeatureRequest] = useState(DEFAULT_INPUT.featureRequest);
   const [error, setError] = useState<string | null>(null);
+  // Memory-only: never persisted, never displayed back, sent once with Verify.
+  const [bobApiKey, setBobApiKey] = useState('');
 
   const isGitCleanStep = demo.currentStep.id === 'git-clean';
 
@@ -45,6 +47,7 @@ export function DemoVerifyChange() {
         featureRequest: featureRequest.trim(),
         branchA: branchA.trim(),
         branchB: branchB.trim(),
+        ...(bobApiKey.trim() ? { bobApiKey: bobApiKey.trim() } : {}),
       });
       demo.setSessionId(sessionId);
       demo.setLiveSession(null);
@@ -137,10 +140,24 @@ export function DemoVerifyChange() {
           </div>
         </div>
 
+        <div className="stack gap-3">
+          <label htmlFor="demo-bobkey">Bob API key (optional — enables live Bob analysis)</label>
+          <input
+            id="demo-bobkey"
+            type="password"
+            className="input-field input-mono"
+            value={bobApiKey}
+            onChange={(e) => setBobApiKey(e.target.value)}
+            placeholder="bob_prod_…"
+            autoComplete="off"
+          />
+        </div>
+
         <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
           MergeMind clones the repository, extracts the real diffs for both changes against the base
           branch, and verifies them with the deterministic semantic engine. Source text only —
-          repository code is never executed.
+          repository code is never executed. The key is sent once with this verification and never
+          stored.
         </span>
 
         {error && (

@@ -116,6 +116,12 @@ export interface VerifyChangeInput {
   codeA?: string;
   /** Optional code diff for branch B — sent to the API when provided. */
   codeB?: string;
+  /**
+   * Optional Bob API key — sent once with the verify request so Bob analysis
+   * runs for this session. Memory-only in the UI; the API never stores it
+   * and never echoes it back.
+   */
+  bobApiKey?: string;
 }
 
 // ── Change Passport ───────────────────────────────────────────────────────────
