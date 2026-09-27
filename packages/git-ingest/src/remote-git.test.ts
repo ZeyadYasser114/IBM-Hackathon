@@ -7,7 +7,12 @@
  * with a real public repository (manual verification) rather than in CI.
  */
 
-import { parseGitHubUrl, validateRef, assertDiffLimits } from '../src/adapters/remote-git.js';
+import {
+  parseGitHubUrl,
+  validateRef,
+  assertDiffLimits,
+  needsLocalBranch,
+} from '../src/adapters/remote-git.js';
 import type { ChangedFile } from '@mergemind/domain';
 
 // ---------------------------------------------------------------------------
@@ -111,3 +116,20 @@ describe('assertDiffLimits', () => {
     expect(() => assertDiffLimits([makeFile(100)], 200, 50)).toThrow(/too large/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// needsLocalBranch
+// ---------------------------------------------------------------------------
+
+describe('needsLocalBranch', () => {
+  it('requires pinning for branch names', () => {
+    expect(needsLocalBranch('main')).toBe(true);
+    expect(needsLocalBranch('feature/auth-roles')).toBe(true);
+  });
+
+  it('skips pinning for raw commit SHAs (they resolve from fetched objects)', () => {
+    expect(needsLocalBranch('a'.repeat(40))).toBe(false);
+    expect(needsLocalBranch('abc1234')).toBe(false);
+  });
+});
+

@@ -1,0 +1,6 @@
+{
+  "framework": "vite",
+  "buildCommand": "pnpm --filter mergemind-ui build",
+  "outputDirectory": "apps/ui/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
