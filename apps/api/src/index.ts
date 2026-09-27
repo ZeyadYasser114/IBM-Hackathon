@@ -58,6 +58,11 @@ interface VerifyRequest {
   /** Optional code diffs for each branch (legacy path, no clone). */
   codeA?: string;
   codeB?: string;
+  /**
+   * Optional caller-supplied Bob API key for this session only. Used once for
+   * Bob analysis, never stored beyond the run, never echoed in responses.
+   */
+  bobApiKey?: string;
 }
 
 interface SessionRecord {
@@ -116,6 +121,17 @@ app.post('/api/verify', (req: Request, res: Response) => {
     res.status(400).json({ error: 'branchA and branchB are required' });
     return;
   }
+  if (
+    body.bobApiKey !== undefined &&
+    (typeof body.bobApiKey !== 'string' ||
+      body.bobApiKey.trim().length === 0 ||
+      body.bobApiKey.length > 500)
+  ) {
+    res
+      .status(400)
+      .json({ error: 'bobApiKey must be a non-empty string of at most 500 characters' });
+    return;
+  }
   // Fail fast for URL-shaped repositories that are not public GitHub URLs.
   // Plain slugs (e.g. "acme-org/platform") keep the legacy no-clone path.
   if (body.repository.includes('://') && !isGitHubUrl(body.repository)) {
@@ -137,6 +153,8 @@ app.post('/api/verify', (req: Request, res: Response) => {
       branchB: body.branchB,
       ...(body.codeA !== undefined ? { codeA: body.codeA } : {}),
       ...(body.codeB !== undefined ? { codeB: body.codeB } : {}),
+      // Per-request key only: kept in memory for this run, stripped from all output.
+      ...(typeof body.bobApiKey === 'string' ? { bobApiKey: body.bobApiKey } : {}),
     },
     startedAt: new Date().toISOString(),
   };
@@ -310,15 +328,24 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
       (isGitHubUrl(session.input.repository) && codeA === undefined && codeB === undefined) ||
       codeA !== undefined ||
       codeB !== undefined;
-    if ((process.env.BOB_API_KEY ?? '').trim().length > 0 && hasBobInputs) {
+    // Per-request key wins; server env is the fallback. Either enables Bob.
+    const sessionBobKey = session.input.bobApiKey;
+    if (
+      ((sessionBobKey ?? '').trim().length > 0 ||
+        (process.env.BOB_API_KEY ?? '').trim().length > 0) &&
+      hasBobInputs
+    ) {
       try {
-        const assist = await runBobAssist({
-          requirementText: featureRequest,
-          branchA,
-          branchB,
-          diffA: bobDiffA,
-          diffB: bobDiffB,
-        });
+        const assist = await runBobAssist(
+          {
+            requirementText: featureRequest,
+            branchA,
+            branchB,
+            diffA: bobDiffA,
+            diffB: bobDiffB,
+          },
+          sessionBobKey,
+        );
         // One combined Bob change with exact-duplicate lines removed: the five
         // agents analyze the same diffs (temperature 0), so identical claims
         // must not multiply into duplicate conflicts. Single-feed rule applies.
@@ -426,12 +453,15 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
 // ── Session serializer ────────────────────────────────────────────────────────
 
 function formatSession(session: SessionRecord) {
+  // The per-request Bob key is memory-only: strip it from every response.
+  const publicInput = { ...session.input };
+  delete publicInput.bobApiKey;
   const base = {
     id: session.id,
     status: session.status,
     startedAt: session.startedAt,
     completedAt: session.completedAt ?? null,
-    input: session.input,
+    input: publicInput,
     merge: session.merge ?? null,
   };
 

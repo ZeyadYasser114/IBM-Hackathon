@@ -137,6 +137,7 @@ function runShell(
   args: string[],
   input: string,
   timeoutMs: number,
+  apiKey: string,
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     // Windows npm shims are .cmd files, which spawn/execFile cannot launch
@@ -146,9 +147,12 @@ function runShell(
       process.platform === 'win32' && !/\.(cmd|exe|bat)$/i.test(cliPath)
         ? `${cliPath}.cmd`
         : cliPath;
+    // The child authenticates from its own environment (the documented Bob
+    // Shell mechanism). A per-request key is injected here, memory-only.
     const child = spawn(bin, args, {
       timeout: timeoutMs,
       stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, BOB_API_KEY: apiKey },
       ...(process.platform === 'win32' ? { shell: true } : {}),
     });
     let stdout = '';
@@ -207,12 +211,14 @@ async function queryShell(
   cliPath: string,
   maxCost: number,
   timeoutMs: number,
+  apiKey: string,
 ): Promise<{ agent: string; content: string }> {
   const { stdout, stderr } = await runShell(
     cliPath,
     ['run', '--mode', 'ask', '--format', 'json', '--max-cost', String(maxCost), '--trust'],
     `You output valid JSON matching the requested schema and nothing else.\n\n${buildPrompt(role, input)}`,
     timeoutMs,
+    apiKey,
   );
   let parsed: unknown;
   try {
@@ -296,9 +302,15 @@ async function queryRole(
  * Run all five Bob roles in parallel. Never throws: per-role failures are
  * collected in `failures`, successes in `texts`. Empty texts + failures means
  * Bob contributed nothing — the caller proceeds deterministically.
+ *
+ * The key resolves per call: an explicit override (per-request key) wins,
+ * otherwise the server environment is used. Absent in both → Bob skipped.
  */
-export async function runBobAssist(input: BobAssistInput): Promise<BobAssistResult> {
-  const apiKey = (process.env.BOB_API_KEY ?? '').trim();
+export async function runBobAssist(
+  input: BobAssistInput,
+  keyOverride?: string,
+): Promise<BobAssistResult> {
+  const apiKey = (keyOverride ?? process.env.BOB_API_KEY ?? '').trim();
   if (!apiKey) return { texts: [], failures: [] };
   const transport = (process.env.BOB_TRANSPORT ?? 'shell').trim().toLowerCase();
   const cliPath = (process.env.BOB_CLI_PATH ?? DEFAULT_CLI_PATH).trim() || DEFAULT_CLI_PATH;
@@ -327,7 +339,7 @@ export async function runBobAssist(input: BobAssistInput): Promise<BobAssistResu
         if (transport === 'https') {
           return await queryRole(role, input, baseUrl, apiKey, model, teamId, timeoutMs);
         }
-        return await queryShell(role, input, cliPath, maxCost, timeoutMs);
+        return await queryShell(role, input, cliPath, maxCost, timeoutMs, apiKey);
       } catch (e) {
         return {
           agent: role,

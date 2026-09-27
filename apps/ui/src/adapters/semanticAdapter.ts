@@ -380,6 +380,7 @@ export async function startAnalysis(input: VerifyChangeInput): Promise<string> {
         branchB: input.branchB,
         ...(input.codeA !== undefined ? { codeA: input.codeA } : {}),
         ...(input.codeB !== undefined ? { codeB: input.codeB } : {}),
+        ...(input.bobApiKey !== undefined ? { bobApiKey: input.bobApiKey } : {}),
       }),
     });
     if (!r.ok) {
