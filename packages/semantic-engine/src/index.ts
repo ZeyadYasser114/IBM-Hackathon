@@ -101,7 +101,11 @@ export {
 export type { ClassificationResult } from './detection/conflict-classifier';
 export { classify } from './detection/conflict-classifier';
 export { buildConflict } from './detection/conflict-builder';
-export { detectConflicts, explainConflicts } from './detection/conflict-detector';
+export {
+  detectConflicts,
+  explainConflicts,
+  deduplicateAssumptions,
+} from './detection/conflict-detector';
 
 // Prompt 5 — explainable report shape
 export type { ConflictReport, EvidenceSide } from './detection/conflict-report';

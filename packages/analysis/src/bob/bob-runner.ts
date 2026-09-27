@@ -20,7 +20,13 @@ import type {
   RepositorySource,
 } from '@mergemind/domain';
 
-import { BobValidationError, completeJson, type ResolvedBobConfig } from './bob-client.js';
+import {
+  BobValidationError,
+  createHttpsCompleter,
+  type BobCompleter,
+  type ResolvedBobConfig,
+} from './bob-client.js';
+import { createShellCompleter, type ShellCompleterOptions } from './bob-shell.js';
 import { BOB_SYSTEM_PROMPT, buildPromptFor } from './bob-prompts.js';
 
 /** Maximum assumptions accepted from a single agent response (safety bound). */
@@ -224,16 +230,15 @@ function progress(
 
 /**
  * A real Bob-backed analysis agent. Construct via createBobRunners so all
- * five roles share one client and one input set.
+ * five roles share one completer (shell subprocess or HTTPS) and one input set.
  */
 export class BobAgentRunner {
   readonly agentType: AgentType;
 
   constructor(
     agentType: AgentType,
-    private readonly config: ResolvedBobConfig,
+    private readonly completer: BobCompleter,
     private readonly inputs: BobRunnerInputs,
-    private readonly fetchFn: typeof fetch = fetch,
   ) {
     this.agentType = agentType;
   }
@@ -245,17 +250,20 @@ export class BobAgentRunner {
   ): Promise<Assumption[]> {
     onProgress(progress(this.agentType, 'running', 'Querying Bob inference…'));
     try {
-      const text = await completeJson(
-        this.config,
+      const text = await this.completer.complete(
         BOB_SYSTEM_PROMPT,
         buildPromptFor(this.agentType, {
           ...this.inputs,
           diffAText: truncateDiff(this.inputs.diffAText),
           diffBText: truncateDiff(this.inputs.diffBText),
         }),
-        this.fetchFn,
       );
-      const assumptions = parseBobAssumptions(text, this.agentType, this.inputs, this.config.model);
+      const assumptions = parseBobAssumptions(
+        text,
+        this.agentType,
+        this.inputs,
+        this.completer.model,
+      );
       onProgress(
         progress(this.agentType, 'complete', `Done (${assumptions.length} assumptions from Bob)`),
       );
@@ -282,14 +290,29 @@ export interface BobRunnerSet {
   diffBText: string;
 }
 
+export type BobTransport = 'shell' | 'https';
+
+export interface BobRunnerFactoryOptions {
+  /** 'shell' (Bob Shell subprocess, default) or 'https' (direct inference API). */
+  transport?: BobTransport;
+  /** Required for the https transport. */
+  config?: ResolvedBobConfig;
+  /** HTTPS fetch override (tests). */
+  fetchFn?: typeof fetch;
+  /** Shell subprocess options (cliPath, maxCostCoins, timeoutMs, execFn). */
+  shell?: ShellCompleterOptions;
+  /** Direct completer override (tests) — bypasses transport construction. */
+  completer?: BobCompleter;
+}
+
 /**
  * Build the five Bob runners (intent, change, contract, dependency, adversary)
- * sharing one resolved client config. Pass the result to AnalysisPipeline.create().
+ * sharing one completer and one input set. Pass the result to
+ * AnalysisPipeline.create().
  */
 export function createBobRunners(
   set: BobRunnerSet,
-  config: ResolvedBobConfig,
-  fetchFn: typeof fetch = fetch,
+  opts: BobRunnerFactoryOptions = {},
 ): BobAgentRunner[] {
   const inputs: BobRunnerInputs = {
     requirementText: set.requirementText,
@@ -298,20 +321,37 @@ export function createBobRunners(
     diffAText: set.diffAText,
     diffBText: set.diffBText,
   };
+  let completer = opts.completer;
+  if (!completer) {
+    const transport = opts.transport ?? 'shell';
+    if (transport === 'https') {
+      if (!opts.config) {
+        throw new BobValidationError(
+          'Bob https transport requires a resolved client config (BOB_API_KEY)',
+        );
+      }
+      completer = createHttpsCompleter(opts.config, opts.fetchFn);
+    } else {
+      completer = createShellCompleter(opts.shell);
+    }
+  }
   const types: AgentType[] = ['intent', 'change', 'contract', 'dependency', 'adversary'];
-  return types.map((agentType) => new BobAgentRunner(agentType, config, inputs, fetchFn));
+  return types.map((agentType) => new BobAgentRunner(agentType, completer, inputs));
 }
 
 /**
  * Render validated Bob assumptions as plain analysis text for the
- * deterministic semantic engine. The engine extracts, normalizes, and decides
- * from this text exactly as it does for diff text — Bob never bypasses it.
+ * deterministic semantic engine. Verbatim evidence travels with each claim so
+ * the engine extracts the same code-level predicates Bob saw. The engine
+ * extracts, normalizes, and decides from this text exactly as it does for
+ * diff text — Bob never bypasses it.
  */
 export function bobAssumptionsToDiffText(assumptions: Assumption[]): string {
   return assumptions
-    .map(
-      (a) =>
-        `[${a.sourceAgent}] ${a.statement} — value: ${a.value} @ ${a.sourceFile} (${a.branchName})`,
-    )
+    .map((a) => {
+      const snippet = a.evidence.map((e) => e.snippet).find((s) => s && s.trim());
+      const base = `[${a.sourceAgent}] ${a.statement} — value: ${a.value} @ ${a.sourceFile} (${a.branchName})`;
+      return snippet ? `${base} :: ${snippet.split('\n').slice(0, 2).join('\n')}` : base;
+    })
     .join('\n');
 }

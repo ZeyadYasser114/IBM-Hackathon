@@ -179,13 +179,19 @@ export function buildReport(
 ): ConflictReport {
   const ruling = assignSeverityAndConfidence(conflict.conflictType, left, right);
 
-  const affectedFiles: string[] = [];
-  if (left.anchor.filePath) affectedFiles.push(left.anchor.filePath);
-  if (right.anchor.filePath && right.anchor.filePath !== left.anchor.filePath) {
-    affectedFiles.push(right.anchor.filePath);
-  }
-
   const allEvidenceReferences = deduplicateRefs(left.anchor.references, right.anchor.references);
+
+  // Every file cited by either side's merged evidence is implicated, so
+  // multi-source findings (deterministic plus Bob-enriched) stay auditable.
+  const affectedFiles = Array.from(
+    new Set(
+      [
+        left.anchor.filePath,
+        right.anchor.filePath,
+        ...allEvidenceReferences.map((ref) => ref.filePath),
+      ].filter((f): f is string => f !== undefined),
+    ),
+  ).sort();
 
   return {
     id: conflict.id,

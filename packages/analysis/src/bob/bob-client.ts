@@ -252,3 +252,24 @@ async function readBoundedBody(response: Response): Promise<string> {
     return '';
   }
 }
+
+// ---------------------------------------------------------------------------
+// Completer adapter (the `(system, user) => text` shape runners consume)
+// ---------------------------------------------------------------------------
+
+export interface BobCompleter {
+  readonly model: string;
+  complete(systemPrompt: string, userPrompt: string): Promise<string>;
+}
+
+/** Wrap the HTTPS transport as a runner completer. */
+export function createHttpsCompleter(
+  config: ResolvedBobConfig,
+  fetchFn: typeof fetch = fetch,
+): BobCompleter {
+  return {
+    model: config.model,
+    complete: (systemPrompt: string, userPrompt: string) =>
+      completeJson(config, systemPrompt, userPrompt, fetchFn),
+  };
+}

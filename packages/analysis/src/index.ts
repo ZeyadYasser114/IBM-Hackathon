@@ -164,12 +164,29 @@ export {
   MAX_ASSUMPTIONS_PER_AGENT,
   MAX_DIFF_CHARS,
 } from './bob/bob-runner.js';
-export type { BobAssumptionJson, BobRunnerInputs, BobRunnerSet } from './bob/bob-runner.js';
+export type {
+  BobAssumptionJson,
+  BobRunnerInputs,
+  BobRunnerSet,
+  BobTransport,
+  BobRunnerFactoryOptions,
+} from './bob/bob-runner.js';
+
+export {
+  createShellCompleter,
+  resolveCliBin,
+  BobShellError,
+  DEFAULT_BOB_CLI_PATH,
+  DEFAULT_BOB_MAX_COST_COINS,
+  DEFAULT_BOB_SHELL_TIMEOUT_MS,
+} from './bob/bob-shell.js';
+export type { ShellCompleterOptions, ShellExecFn, ShellExecResult } from './bob/bob-shell.js';
 
 export {
   resolveBobConfig,
   bobConfigFromEnv,
   completeJson,
+  createHttpsCompleter,
   BobError,
   BobConfigError,
   BobAuthError,
@@ -182,7 +199,7 @@ export {
   DEFAULT_BOB_TIMEOUT_MS,
   BOB_MAX_TOKENS,
 } from './bob/bob-client.js';
-export type { BobClientOptions, ResolvedBobConfig } from './bob/bob-client.js';
+export type { BobClientOptions, ResolvedBobConfig, BobCompleter } from './bob/bob-client.js';
 
 export { buildPromptFor, BOB_SYSTEM_PROMPT } from './bob/bob-prompts.js';
 export type { BobPromptInputs } from './bob/bob-prompts.js';

@@ -99,6 +99,43 @@ function deduplicate(conflicts: SemanticConflict[]): SemanticConflict[] {
 }
 
 // ---------------------------------------------------------------------------
+// Equivalent-assumption deduplication
+// ---------------------------------------------------------------------------
+
+/**
+ * Collapse assumptions with identical canonical (subject, predicate) into one,
+ * merging their evidence references. The same claim arriving through multiple
+ * evidence sources (whole-diff text plus per-file snippets, deterministic
+ * plus Bob-enriched inputs) must not multiply one logical conflict into many.
+ * Genuinely distinct claims (different values, entities, or predicates) are
+ * preserved untouched. First occurrence wins; order — and therefore output —
+ * stays deterministic.
+ */
+export function deduplicateAssumptions(
+  assumptions: readonly NormalizedAssumption[],
+): NormalizedAssumption[] {
+  const seen = new Map<string, NormalizedAssumption>();
+  for (const assumption of assumptions) {
+    const key = `${assumption.canonicalSubject}||${assumption.canonicalPredicate}`;
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, assumption);
+      continue;
+    }
+    const known = new Set(existing.anchor.references.map((ref) => ref.id));
+    const merged = [...existing.anchor.references];
+    for (const ref of assumption.anchor.references) {
+      if (!known.has(ref.id)) {
+        known.add(ref.id);
+        merged.push(ref);
+      }
+    }
+    seen.set(key, { ...existing, anchor: { ...existing.anchor, references: merged } });
+  }
+  return [...seen.values()];
+}
+
+// ---------------------------------------------------------------------------
 // Deterministic sort
 // ---------------------------------------------------------------------------
 
@@ -124,7 +161,7 @@ function deterministicSort(conflicts: SemanticConflict[]): SemanticConflict[] {
 export function detectConflicts(assumptions: readonly NormalizedAssumption[]): SemanticConflict[] {
   if (assumptions.length < 2) return [];
 
-  const groups = groupBySubject(assumptions);
+  const groups = groupBySubject(deduplicateAssumptions(assumptions));
   const allConflicts: SemanticConflict[] = [];
 
   for (const group of groups.values()) {
@@ -153,7 +190,7 @@ export function detectConflicts(assumptions: readonly NormalizedAssumption[]): S
 export function explainConflicts(assumptions: readonly NormalizedAssumption[]): ConflictReport[] {
   if (assumptions.length < 2) return [];
 
-  const groups = groupBySubject(assumptions);
+  const groups = groupBySubject(deduplicateAssumptions(assumptions));
   const reports: ConflictReport[] = [];
   const seenIds = new Set<string>();
 

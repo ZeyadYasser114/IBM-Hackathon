@@ -319,18 +319,30 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
           diffA: bobDiffA,
           diffB: bobDiffB,
         });
+        // One combined Bob change with exact-duplicate lines removed: the five
+        // agents analyze the same diffs (temperature 0), so identical claims
+        // must not multiply into duplicate conflicts. Single-feed rule applies.
+        const seen = new Set<string>();
+        const uniqueLines: string[] = [];
         for (const t of assist.texts) {
-          if (t.content.trim().length === 0) continue;
+          for (const line of t.content.split('\n')) {
+            const trimmed = line.trim();
+            if (!trimmed || seen.has(trimmed)) continue;
+            seen.add(trimmed);
+            uniqueLines.push(trimmed);
+          }
+        }
+        if (uniqueLines.length > 0) {
+          const combined = uniqueLines.join('\n');
           bobChanges.push({
-            id: `change-bob-${t.agent}`,
-            label: `Bob ${t.agent} findings`,
-            // Single-feed rule: validated Bob text travels in the snippet.
+            id: 'change-bob-findings',
+            label: 'Bob findings',
             content: '—',
             fileSnippets: [
               {
-                filePath: `bob-${t.agent}-findings.txt`,
+                filePath: 'bob-findings.txt',
                 sourceType: SourceType.CODE_DIFF,
-                content: t.content,
+                content: combined,
               },
             ],
           });

@@ -1,9 +1,16 @@
 /**
- * bob-assist.ts — opt-in Bob inference for the /demo verification path.
+ * bob-assist.ts — opt-in Bob analysis for the /demo verification path.
  *
  * Self-contained because the API server is CommonJS while
  * @mergemind/analysis ships as ESM. It mirrors the assumption JSON schema
  * documented in packages/analysis/src/bob/bob-prompts.ts — keep the two in sync.
+ *
+ * Transport (BOB_TRANSPORT, default: shell):
+ *   - shell (default, verified): `bob run --mode ask --format json` subprocess.
+ *     The key is never read here — the child inherits the server environment.
+ *     `--mode ask` is read-only and `--max-cost` bounds spend per call.
+ *   - https: direct inference API (kept as an alternative; observed
+ *     edge-challenged in some environments).
  *
  * Behavior: when BOB_API_KEY is set, each of the five roles is queried in
  * parallel and validated assumptions become extra engine input text. Any
@@ -11,9 +18,14 @@
  * key is absent the caller skips Bob entirely (deterministic-only).
  */
 
+import { spawn } from 'node:child_process';
+
 const DEFAULT_BASE_URL = 'https://api.us-east.bob.ibm.com/inference/v1';
 const DEFAULT_MODEL = 'premium';
 const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_SHELL_TIMEOUT_MS = 180_000;
+const DEFAULT_CLI_PATH = 'bob';
+const DEFAULT_MAX_COST = 0.5;
 const MAX_TOKENS = 2000;
 const MAX_DIFF_CHARS = 12_000;
 
@@ -74,6 +86,11 @@ interface RawAssumption {
   value?: unknown;
   branch?: unknown;
   file?: unknown;
+  evidence?: unknown;
+}
+
+function firstLines(text: string, maxLines: number): string {
+  return text.split('\n').slice(0, maxLines).join('\n');
 }
 
 function toTextLines(role: Role, input: BobAssistInput, rawText: string): string[] {
@@ -102,11 +119,118 @@ function toTextLines(role: Role, input: BobAssistInput, rawText: string): string
       throw new Error(`Bob ${role} assumption has an unknown "branch"`);
     }
     const file = typeof r.file === 'string' && r.file.trim() ? r.file.trim() : '—';
+    // Verbatim evidence travels with the claim so the engine extracts the same
+    // code-level predicates Bob saw (not just its paraphrase).
+    const evidence =
+      typeof r.evidence === 'string' && r.evidence.trim()
+        ? ` :: ${firstLines(r.evidence.trim(), 2)}`
+        : '';
     lines.push(
-      `[${role}] ${r.statement.trim()} — value: ${r.value.trim()} @ ${file} (${r.branch as string})`,
+      `[${role}] ${r.statement.trim()} — value: ${r.value.trim()} @ ${file} (${r.branch as string})${evidence}`,
     );
   }
   return lines;
+}
+
+function runShell(
+  cliPath: string,
+  args: string[],
+  input: string,
+  timeoutMs: number,
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    // Windows npm shims are .cmd files, which spawn/execFile cannot launch
+    // without a shell — resolve the extension explicitly. Prompt travels via
+    // stdin, never the command line; argv stays a fixed literal vector.
+    const bin =
+      process.platform === 'win32' && !/\.(cmd|exe|bat)$/i.test(cliPath)
+        ? `${cliPath}.cmd`
+        : cliPath;
+    const child = spawn(bin, args, {
+      timeout: timeoutMs,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      ...(process.platform === 'win32' ? { shell: true } : {}),
+    });
+    let stdout = '';
+    let stderr = '';
+    let done = false;
+    const finish = (fn: () => void) => {
+      if (!done) {
+        done = true;
+        clearTimeout(timer);
+        fn();
+      }
+    };
+    const timer = setTimeout(() => {
+      finish(() => {
+        child.kill();
+        reject(new Error(`Bob Shell timed out after ${timeoutMs}ms`));
+      });
+    }, timeoutMs);
+    child.stdout?.on('data', (d: Buffer) => {
+      stdout += d.toString();
+    });
+    child.stderr?.on('data', (d: Buffer) => {
+      stderr += d.toString();
+    });
+    child.on('error', (e: Error) => {
+      const code = (e as NodeJS.ErrnoException).code;
+      finish(() =>
+        reject(
+          code === 'ENOENT'
+            ? new Error(`Bob Shell CLI not found at "${cliPath}" — install Bob Shell`)
+            : new Error(`Could not start Bob Shell: ${e.message}`.slice(0, 300)),
+        ),
+      );
+    });
+    child.on('close', (code: number | null) => {
+      finish(() =>
+        code === 0
+          ? resolve({ stdout, stderr })
+          : reject(new Error(`Bob Shell exited (${code}): ${stderr.slice(0, 200)}`.trim())),
+      );
+    });
+    try {
+      if (child.stdin) {
+        child.stdin.write(input);
+        child.stdin.end();
+      }
+    } catch (e) {
+      finish(() => reject(e instanceof Error ? e : new Error(String(e))));
+    }
+  });
+}
+
+async function queryShell(
+  role: Role,
+  input: BobAssistInput,
+  cliPath: string,
+  maxCost: number,
+  timeoutMs: number,
+): Promise<{ agent: string; content: string }> {
+  const { stdout, stderr } = await runShell(
+    cliPath,
+    ['run', '--mode', 'ask', '--format', 'json', '--max-cost', String(maxCost), '--trust'],
+    `You output valid JSON matching the requested schema and nothing else.\n\n${buildPrompt(role, input)}`,
+    timeoutMs,
+  );
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout.trim()) as unknown;
+  } catch {
+    throw new Error(
+      `Bob ${role} returned non-JSON output${stderr.trim() ? `: ${stderr.slice(0, 200)}` : ''}`,
+    );
+  }
+  const typed = parsed as { type?: unknown; status?: unknown; last_message?: unknown };
+  if (typed.type !== 'result' || typed.status !== 'success') {
+    throw new Error(`Bob ${role} reported status "${String(typed.status ?? 'unknown')}"`);
+  }
+  if (typeof typed.last_message !== 'string' || !typed.last_message.trim()) {
+    throw new Error(`Bob ${role} returned an empty message`);
+  }
+  const lines = toTextLines(role, input, typed.last_message);
+  return { agent: role, content: lines.join('\n') };
 }
 
 async function queryRole(
@@ -176,18 +300,34 @@ async function queryRole(
 export async function runBobAssist(input: BobAssistInput): Promise<BobAssistResult> {
   const apiKey = (process.env.BOB_API_KEY ?? '').trim();
   if (!apiKey) return { texts: [], failures: [] };
+  const transport = (process.env.BOB_TRANSPORT ?? 'shell').trim().toLowerCase();
+  const cliPath = (process.env.BOB_CLI_PATH ?? DEFAULT_CLI_PATH).trim() || DEFAULT_CLI_PATH;
+  const maxCostRaw = (process.env.BOB_MAX_COST ?? '').trim();
+  const maxCost = maxCostRaw ? Number(maxCostRaw) : DEFAULT_MAX_COST;
   const baseUrl = (process.env.BOB_API_BASE_URL ?? DEFAULT_BASE_URL).trim().replace(/\/+$/, '');
   const model = (process.env.BOB_MODEL ?? DEFAULT_MODEL).trim() || DEFAULT_MODEL;
   const teamId = (process.env.BOB_TEAM_ID ?? '').trim() || undefined;
   const timeoutRaw = (process.env.BOB_TIMEOUT_MS ?? '').trim();
-  const timeoutMs = timeoutRaw ? Number(timeoutRaw) : DEFAULT_TIMEOUT_MS;
+  const timeoutMs = timeoutRaw
+    ? Number(timeoutRaw)
+    : transport === 'https'
+      ? DEFAULT_TIMEOUT_MS
+      : DEFAULT_SHELL_TIMEOUT_MS;
 
   type Settled =
     { agent: string; content: string } | { agent: string; content: null; failure: string };
+  // Staggered starts: parallel `bob run` processes share one local task
+  // database, and simultaneous spawns intermittently lock it. A small
+  // per-agent delay removes the contention; calls still overlap.
+  const STAGGER_MS = 400;
   const settled: Settled[] = await Promise.all(
-    ROLES.map(async (role): Promise<Settled> => {
+    ROLES.map(async (role, index): Promise<Settled> => {
       try {
-        return await queryRole(role, input, baseUrl, apiKey, model, teamId, timeoutMs);
+        if (index > 0) await new Promise((r) => setTimeout(r, STAGGER_MS * index));
+        if (transport === 'https') {
+          return await queryRole(role, input, baseUrl, apiKey, model, teamId, timeoutMs);
+        }
+        return await queryShell(role, input, cliPath, maxCost, timeoutMs);
       } catch (e) {
         return {
           agent: role,

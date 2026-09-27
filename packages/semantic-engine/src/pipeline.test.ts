@@ -154,3 +154,36 @@ describe('detectConflicts edge cases', () => {
     expect(explainConflicts([])).toEqual([]);
   });
 });
+
+describe('equivalent-assumption deduplication', () => {
+  it('collapses one logical conflict fed through two evidence sources into one report', async () => {
+    const base = killerInput();
+    const duplicated: AnalysisInput = {
+      ...base,
+      changes: [
+        ...base.changes,
+        {
+          id: 'change-billing-copy',
+          label: 'billing-task-copy',
+          content: '—',
+          fileSnippets: [
+            {
+              filePath: 'billing/permissions.ts',
+              sourceType: SourceType.CODE_DIFF,
+              content: `if (user.role === 'admin') { manageSubscription(); }`,
+            },
+          ],
+        },
+      ],
+    };
+    const { conflicts, reports } = await runFullPipeline(duplicated);
+    expect(conflicts).toHaveLength(1);
+    expect(reports).toHaveLength(1);
+    expect(reports[0]?.conflictType).toBe('BUSINESS_RULE');
+  });
+
+  it('preserves genuinely distinct conflicts', async () => {
+    const { conflicts } = await runFullPipeline(killerInput());
+    expect(conflicts.length).toBeGreaterThanOrEqual(1);
+  });
+});

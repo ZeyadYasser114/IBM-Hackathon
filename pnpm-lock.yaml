@@ -354,6 +354,9 @@ importers:
       '@mergemind/fixtures':
         specifier: workspace:*
         version: link:../fixtures
+      '@mergemind/mcp-server':
+        specifier: workspace:*
+        version: link:../mcp-server
       '@types/jest':
         specifier: ^29.5.12
         version: 29.5.14

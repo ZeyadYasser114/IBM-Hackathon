@@ -13,7 +13,8 @@ import {
   bobAssumptionsToDiffText,
   type BobRunnerInputs,
 } from './bob-runner.js';
-import { resolveBobConfig } from './bob-client.js';
+import { resolveBobConfig, createHttpsCompleter } from './bob-client.js';
+import { createShellCompleter } from './bob-shell.js';
 import { buildPromptFor } from './bob-prompts.js';
 
 const INPUTS: BobRunnerInputs = {
@@ -141,7 +142,11 @@ describe('parseBobAssumptions', () => {
 
 describe('BobAgentRunner', () => {
   it('returns mapped assumptions and complete progress on success', async () => {
-    const runner = new BobAgentRunner('change', CONFIG, INPUTS, completionFetch(VALID_RESPONSE));
+    const runner = new BobAgentRunner(
+      'change',
+      createHttpsCompleter(CONFIG, completionFetch(VALID_RESPONSE)),
+      INPUTS,
+    );
     const seen: string[] = [];
     const out = await runner.run(REQUIREMENT, CONTEXT, (p) => seen.push(p.status));
     expect(out).toHaveLength(2);
@@ -149,7 +154,11 @@ describe('BobAgentRunner', () => {
   });
 
   it('never throws and never fabricates on auth failure', async () => {
-    const runner = new BobAgentRunner('change', CONFIG, INPUTS, completionFetch('{}', 401));
+    const runner = new BobAgentRunner(
+      'change',
+      createHttpsCompleter(CONFIG, completionFetch('{}', 401)),
+      INPUTS,
+    );
     const seen: Array<{ status: string; message: string }> = [];
     const out = await runner.run(REQUIREMENT, CONTEXT, (p) =>
       seen.push({ status: p.status, message: p.message }),
@@ -160,7 +169,11 @@ describe('BobAgentRunner', () => {
   });
 
   it('returns empty on malformed JSON with a failed report', async () => {
-    const runner = new BobAgentRunner('adversary', CONFIG, INPUTS, completionFetch('{{{'));
+    const runner = new BobAgentRunner(
+      'adversary',
+      createHttpsCompleter(CONFIG, completionFetch('{{{')),
+      INPUTS,
+    );
     const out = await runner.run(REQUIREMENT, CONTEXT, () => undefined);
     expect(out).toEqual([]);
   });
@@ -176,17 +189,57 @@ describe('createBobRunners + pipeline partial failure', () => {
         diffAText: INPUTS.diffAText,
         diffBText: INPUTS.diffBText,
       },
-      CONFIG,
-      completionFetch(VALID_RESPONSE),
+      {
+        transport: 'https',
+        config: CONFIG,
+        fetchFn: completionFetch(VALID_RESPONSE),
+      },
     );
     expect(runners.map((r) => r.agentType).sort()).toEqual(
       ['adversary', 'change', 'contract', 'dependency', 'intent'].sort(),
     );
   });
 
+  it('builds shell-transport runners by default without spawning', () => {
+    const runners = createBobRunners({
+      requirementText: INPUTS.requirementText,
+      branchAName: INPUTS.branchAName,
+      branchBName: INPUTS.branchBName,
+      diffAText: INPUTS.diffAText,
+      diffBText: INPUTS.diffBText,
+    });
+    expect(runners).toHaveLength(5);
+  });
+
+  it('runs a shell-backed agent from a fake exec', async () => {
+    const completer = createShellCompleter({
+      execFn: () =>
+        Promise.resolve({
+          stdout: JSON.stringify({
+            type: 'result',
+            status: 'success',
+            last_message: VALID_RESPONSE,
+          }),
+          stderr: '',
+        }),
+    });
+    const runner = new BobAgentRunner('intent', completer, INPUTS);
+    const out = await runner.run(REQUIREMENT, CONTEXT, () => undefined);
+    expect(out).toHaveLength(2);
+    expect(out[0]?.sourceAgent).toBe('intent');
+  });
+
   it('keeps successful results and reports failures without fabrication', async () => {
-    const ok = new BobAgentRunner('change', CONFIG, INPUTS, completionFetch(VALID_RESPONSE));
-    const bad = new BobAgentRunner('contract', CONFIG, INPUTS, completionFetch('{{{'));
+    const ok = new BobAgentRunner(
+      'change',
+      createHttpsCompleter(CONFIG, completionFetch(VALID_RESPONSE)),
+      INPUTS,
+    );
+    const bad = new BobAgentRunner(
+      'contract',
+      createHttpsCompleter(CONFIG, completionFetch('{{{')),
+      INPUTS,
+    );
     const pipeline = AnalysisPipeline.create([ok, bad]);
     const result = await pipeline.run(REQUIREMENT, CONTEXT);
     expect(result.assumptions).toHaveLength(2);
@@ -200,6 +253,12 @@ describe('bobAssumptionsToDiffText', () => {
     const text = bobAssumptionsToDiffText(assumptions);
     expect(text).toContain("Privileged organization role is 'owner'");
     expect(text).toContain('auth/roles.ts');
+  });
+
+  it('carries verbatim evidence so the engine sees Bob’s code predicates', () => {
+    const assumptions = parseBobAssumptions(VALID_RESPONSE, 'change', INPUTS, 'premium');
+    const text = bobAssumptionsToDiffText(assumptions);
+    expect(text).toContain("User.role = 'owner';");
   });
 });
 

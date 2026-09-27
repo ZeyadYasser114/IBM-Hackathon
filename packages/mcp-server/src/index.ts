@@ -20,6 +20,9 @@ import { z } from 'zod';
 
 import { verifyChanges, verifyGitHubRepository } from './verify.js';
 
+export { verifyChanges, verifyGitHubRepository };
+export type { TextChange, VerificationOutcome, GitHubVerifyOptions } from './verify.js';
+
 const server = new McpServer({ name: 'mergemind-verification', version: '0.1.0' });
 
 const textChangeSchema = z.object({
