@@ -247,6 +247,43 @@ async function resolveRef(runnerCwd: string, name: string): Promise<BranchRef> {
 }
 
 /**
+ * Decide whether a ref needs a local branch pointer. Raw commit SHAs resolve
+ * directly from fetched objects; branch names need `branch -f` because a
+ * --no-checkout clone may not create local branches for them (notably when
+ * the remote HEAD points elsewhere).
+ */
+export function needsLocalBranch(name: string): boolean {
+  const value = name.trim();
+  if (/^[0-9a-fA-F]+$/.test(value) && value.length >= 4 && value.length <= 64) return false;
+  return true;
+}
+
+/**
+ * Pin a local branch to an already-resolved SHA so name-based consumers
+ * (LocalGitAdapter, createRepositoryContext) work regardless of which branch
+ * the remote HEAD points at. No checkout, no working-tree reads — diffs use
+ * object SHAs only, so moving the ref is safe here.
+ */
+async function ensureLocalBranch(repoPath: string, name: string, sha: string): Promise<void> {
+  if (!needsLocalBranch(name)) return;
+  try {
+    const current = (
+      await runGit(['rev-parse', '--verify', name], repoPath, GIT_TIMEOUT_MS)
+    ).trim();
+    if (current.toLowerCase() === sha.toLowerCase()) return;
+  } catch {
+    // Not resolvable locally — pin it below.
+  }
+  try {
+    await runGit(['branch', '-f', name, sha], repoPath, GIT_TIMEOUT_MS);
+  } catch {
+    // `branch -f` refuses the checked-out branch (e.g. when the remote HEAD
+    // points at one of our refs). Move the ref directly instead.
+    await runGit(['update-ref', `refs/heads/${name}`, sha], repoPath, GIT_TIMEOUT_MS);
+  }
+}
+
+/**
  * Clone a public GitHub repository into a temp dir and extract real diffs for
  * both changes against the base branch.
  *
@@ -305,6 +342,12 @@ export async function ingestRemoteRepository(
     const base = await resolveRef(repoPath, baseBranch);
     const changeARef = await resolveRef(repoPath, options.changeA);
     const changeBRef = await resolveRef(repoPath, options.changeB);
+
+    // Pin local branches: a --no-checkout clone only guarantees the remote
+    // HEAD branch locally, so name-based diffing would fail otherwise.
+    await ensureLocalBranch(repoPath, base.name, base.sha);
+    await ensureLocalBranch(repoPath, changeARef.name, changeARef.sha);
+    await ensureLocalBranch(repoPath, changeBRef.name, changeBRef.sha);
 
     // Reuse the existing deterministic pipeline: LocalGitAdapter + orchestrator.
     const adapter = new LocalGitAdapter(repoPath);

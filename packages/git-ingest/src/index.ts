@@ -50,6 +50,7 @@ export {
   parseGitHubUrl,
   validateRef,
   assertDiffLimits,
+  needsLocalBranch,
   ingestRemoteRepository,
   CLONE_TIMEOUT_MS,
   FETCH_TIMEOUT_MS,

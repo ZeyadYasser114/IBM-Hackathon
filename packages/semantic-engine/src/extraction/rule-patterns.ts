@@ -169,10 +169,13 @@ const CONTRACT_PATTERNS: RulePattern[] = [
   {
     id: 'contract:field_name',
     category: AssumptionCategory.CONTRACT,
+    // Deliberately strict: bare "return <word>" and "field <word>" appear in
+    // ordinary prose ("return for all users") and produced false field claims.
+    // A return must quote the field name; a field mention stands on its own.
     pattern:
-      /(?:returns?|responds?\s+with|field(?:\s+(?:is\s+)?named?)?(?:\s*:)?)\s+['"`]?([\w_]+)['"`]?/i,
+      /(?:returns?|responds?\s+with)\s+['"`]([\w_]+)['"`]|field(?:\s+(?:is\s+)?named?)?(?:\s*:)?\s+['"`]?([\w_]+)['"`]?/i,
     extract(match) {
-      const field = match[1]?.trim();
+      const field = (match[1] ?? match[2] ?? '').trim();
       if (!field || field.length < 2) return null;
       return {
         category: AssumptionCategory.CONTRACT,
@@ -187,9 +190,11 @@ const CONTRACT_PATTERNS: RulePattern[] = [
   {
     id: 'contract:expects_field',
     category: AssumptionCategory.CONTRACT,
-    pattern: /expects?\s+(?:field\s+)?['"`]?([\w_]+)['"`]?/i,
+    // Same strictness rationale: bare "expects <word>" matches prose
+    // ("expects admins to…"). Require the word "field" or a quoted name.
+    pattern: /expects?\s+(?:field\s+['"`]?([\w_]+)['"`]?|['"`]([\w_]+)['"`])/i,
     extract(match) {
-      const field = match[1]?.trim();
+      const field = (match[1] ?? match[2] ?? '').trim();
       if (!field || field.length < 2) return null;
       return {
         category: AssumptionCategory.CONTRACT,
