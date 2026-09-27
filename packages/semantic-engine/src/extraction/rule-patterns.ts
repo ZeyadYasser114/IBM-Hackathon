@@ -259,6 +259,25 @@ const SCHEMA_PATTERNS: RulePattern[] = [
     },
   },
   {
+    id: 'schema:field_optional_property',
+    category: AssumptionCategory.SCHEMA,
+    // TypeScript-style optional property (`email?: string`). The `?:` marker
+    // is unambiguous: optional chaining (`?.`) and ternaries do not match it.
+    pattern: /(?:^|[\s,;{(])([A-Za-z_][\w_]*)\?\s*:/,
+    extract(match) {
+      const field = (match[1] ?? '').trim();
+      if (!field) return null;
+      return {
+        category: AssumptionCategory.SCHEMA,
+        subject: toSubjectKey(field),
+        predicate: `is_required = false`,
+        evidenceText: match[0].trim(),
+        statement: `Field '${field}' is optional`,
+        confidence: Confidence.HIGH,
+      };
+    },
+  },
+  {
     id: 'schema:field_type',
     category: AssumptionCategory.SCHEMA,
     pattern:
@@ -281,10 +300,32 @@ const SCHEMA_PATTERNS: RulePattern[] = [
 
 const DEPENDENCY_PATTERNS: RulePattern[] = [
   {
+    id: 'dep:field_always_present',
+    category: AssumptionCategory.DEPENDENCY,
+    // Bare form ("user.email is always defined"): the segmenter splits on '.',
+    // so the "assumes …" framing may live in a neighbouring segment. The leaf
+    // name is the entity (user.email → email) to align with declaration-side
+    // subjects.
+    pattern: /([A-Za-z_][\w.]*)\s+is\s+always\s+(?:present|available|defined)\b/i,
+    extract(match) {
+      const raw = (match[1] ?? '').trim();
+      const leaf = raw.split('.').pop() ?? '';
+      if (!leaf) return null;
+      return {
+        category: AssumptionCategory.DEPENDENCY,
+        subject: toSubjectKey(leaf),
+        predicate: `always_present = true`,
+        evidenceText: match[0].trim(),
+        statement: `Dependency assumes '${leaf.toLowerCase()}' is always present`,
+        confidence: Confidence.MEDIUM,
+      };
+    },
+  },
+  {
     id: 'dep:assumes_field_present',
     category: AssumptionCategory.DEPENDENCY,
     pattern:
-      /assumes?\s+(?:every\s+\w+\s+has\s+|[\w\s]+?\s+is\s+always\s+(?:present|available))([\w\s]{2,40}?)(?:\.|,|$)/i,
+      /assumes?\s+(?:every\s+\w+\s+has\s+|[\w\s.]+?\s+is\s+always\s+(?:present|available|defined))([\w\s]{0,40}?)(?:\.|,|$)/i,
     extract(match, fullText) {
       const fieldMatch = /\b(email|phone|name|address|id|token|key)\b/i.exec(fullText);
       const field = fieldMatch ? fieldMatch[1]!.toLowerCase() : toSubjectKey(match[1] ?? '');

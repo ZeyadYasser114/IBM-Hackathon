@@ -20,7 +20,11 @@ import {
   SourceType,
 } from '@mergemind/semantic-engine';
 import type { AnalysisInput, ConflictReport } from '@mergemind/semantic-engine';
-import { ingestRemoteRepository } from '@mergemind/git-ingest';
+import {
+  ingestRemoteRepository,
+  changeSetFromIngestResult,
+  buildSemanticAnalysisInput,
+} from '@mergemind/git-ingest';
 
 export interface TextChange {
   label: string;
@@ -36,9 +40,6 @@ export interface VerificationOutcome {
   reports: readonly ConflictReport[];
   filesChanged: number | null;
 }
-
-const MAX_SNIPPET_CHARS = 20_000;
-const MAX_SNIPPET_FILES = 50;
 
 function toFileSnippet(changeId: string, change: TextChange) {
   const filePath = change.filePath?.trim() || `${changeId}.diff`;
@@ -74,17 +75,19 @@ export async function verifyChanges(
   const input: AnalysisInput = {
     sessionId,
     requirementText,
+    // Single-feed rule: the snippet carries the payload, content is inert,
+    // so each claim is extracted exactly once (no duplicate conflicts).
     changes: [
       {
         id: 'change-a',
         label: changeA.label,
-        content: changeA.content,
+        content: '—',
         fileSnippets: [toFileSnippet('change-a', changeA)],
       },
       {
         id: 'change-b',
         label: changeB.label,
-        content: changeB.content,
+        content: '—',
         fileSnippets: [toFileSnippet('change-b', changeB)],
       },
     ],
@@ -143,46 +146,33 @@ export async function verifyGitHubRepository(
   });
 
   try {
-    const byBranch = new Map<string, { label: string; snippets: string[]; paths: string[] }>();
-    byBranch.set(options.changeA, { label: options.changeA, snippets: [], paths: [] });
-    byBranch.set(options.changeB, { label: options.changeB, snippets: [], paths: [] });
-    for (const file of ingested.changedFiles) {
-      const entry = byBranch.get(file.branchName);
-      if (!entry) continue;
-      if (entry.snippets.length >= MAX_SNIPPET_FILES) continue;
-      if (file.patch) {
-        entry.snippets.push(file.patch.slice(0, MAX_SNIPPET_CHARS));
-        entry.paths.push(file.path);
-      }
-    }
+    // Shared ingestion contract: single-feed rule already applied, so each
+    // claim is extracted exactly once (no duplicate conflicts).
+    const semantic = buildSemanticAnalysisInput(
+      changeSetFromIngestResult(ingested),
+      options.featureRequest,
+    );
 
-    const toChange = (key: 'changeA' | 'changeB', id: string) => {
-      const entry =
-        key === 'changeA' ? byBranch.get(options.changeA)! : byBranch.get(options.changeB)!;
-      const content =
-        entry.snippets.length > 0
-          ? entry.snippets.join('\n')
-          : `No textual differences for ${entry.label}.`;
-      const fileSnippets =
-        entry.snippets.length > 0
-          ? entry.paths.map((path, idx) => ({
-              filePath: path,
-              sourceType: SourceType.CODE_DIFF,
-              content: entry.snippets[idx]!,
-            }))
-          : undefined;
+    const toChange = (change: (typeof semantic.changes)[number]) => {
+      const fileSnippets = change.files
+        .filter((f) => f.content.trim().length > 0)
+        .map((f) => ({
+          filePath: f.path,
+          sourceType: SourceType.CODE_DIFF,
+          content: f.content,
+        }));
       return {
-        id,
-        label: entry.label,
-        content,
-        ...(fileSnippets !== undefined ? { fileSnippets } : {}),
+        id: change.id,
+        label: change.label,
+        content: change.content,
+        ...(fileSnippets.length > 0 ? { fileSnippets } : {}),
       };
     };
 
     const input: AnalysisInput = {
       sessionId,
-      requirementText: options.featureRequest,
-      changes: [toChange('changeA', 'change-a'), toChange('changeB', 'change-b')],
+      requirementText: semantic.requirementText,
+      changes: semantic.changes.map(toChange),
     };
     assertValidAnalysisInput(input);
 

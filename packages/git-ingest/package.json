@@ -7,8 +7,10 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist-cjs/index.js",
+      "default": "./dist/index.js"
     },
     "./testing": {
       "import": "./dist/testing/builders.js",
@@ -16,12 +18,12 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node scripts/emit-cjs-marker.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --ext .ts",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "example": "tsc -p tsconfig.examples.json && node dist-examples/examples/ingest-example.js",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist dist-cjs *.tsbuildinfo"
   },
   "dependencies": {
     "@mergemind/domain": "workspace:*"

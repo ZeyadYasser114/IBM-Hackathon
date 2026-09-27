@@ -36,7 +36,15 @@ const PREDICATE_KEY_SYNONYMS: readonly PredicateKeySynonym[] = [
   },
   {
     canonical: 'is_required',
-    synonyms: ['is_required', 'required', 'mandatory', 'not_nullable', 'non_null', 'must_exist'],
+    synonyms: [
+      'is_required',
+      'required',
+      'mandatory',
+      'not_nullable',
+      'non_null',
+      'must_exist',
+      'always_present',
+    ],
     explanation: "Normalized required-field predicate key variants to 'is_required'",
   },
   {

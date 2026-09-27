@@ -11,6 +11,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
+    "@mergemind/git-ingest": "workspace:*",
     "@mergemind/semantic-engine": "workspace:*",
     "cors": "^2.8.5",
     "express": "^4.19.2",

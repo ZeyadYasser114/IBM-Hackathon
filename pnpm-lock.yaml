@@ -184,6 +184,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@mergemind/git-ingest':
+        specifier: workspace:*
+        version: link:../../packages/git-ingest
       '@mergemind/semantic-engine':
         specifier: workspace:*
         version: link:../../packages/semantic-engine
@@ -329,15 +332,15 @@ importers:
 
   packages/api:
     dependencies:
-      '@mergemind/analysis':
-        specifier: workspace:*
-        version: link:../analysis
       '@mergemind/domain':
         specifier: workspace:*
         version: link:../domain
       '@mergemind/git-ingest':
         specifier: workspace:*
         version: link:../git-ingest
+      '@mergemind/semantic-engine':
+        specifier: workspace:*
+        version: link:../semantic-engine
       '@mergemind/verification':
         specifier: workspace:*
         version: link:../verification
@@ -348,6 +351,9 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
+      '@mergemind/fixtures':
+        specifier: workspace:*
+        version: link:../fixtures
       '@types/jest':
         specifier: ^29.5.12
         version: 29.5.14

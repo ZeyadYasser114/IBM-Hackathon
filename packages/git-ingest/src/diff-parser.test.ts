@@ -274,6 +274,45 @@ describe('parseDiff — multi-hunk file', () => {
 });
 
 // ===========================================================================
+// Header-less pasted diffs (--- / +++ markers only, no diff --git line)
+// ===========================================================================
+
+describe('parseDiff — header-less fallback', () => {
+  const HEADERLESS_TWO_FILES = [
+    '--- a/src/auth/roles.ts',
+    '+++ b/src/auth/roles.ts',
+    '@@ -1 +1 @@',
+    "-export const ROLE = 'admin';",
+    "+export const ROLE = 'owner';",
+    '--- a/src/billing/permissions.ts',
+    '+++ b/src/billing/permissions.ts',
+    '@@ -1 +1 @@',
+    "-if (user.role === 'admin') {",
+    "+if (user.role === 'owner') {",
+  ].join('\n');
+
+  it('parses one ParsedFile per file without diff --git headers', () => {
+    const files = parseDiff(HEADERLESS_TWO_FILES);
+    expect(files).toHaveLength(2);
+    expect(files.map((f) => f.path).sort()).toEqual([
+      'src/auth/roles.ts',
+      'src/billing/permissions.ts',
+    ]);
+  });
+
+  it('extracts hunks with added and removed lines', () => {
+    const files = parseDiff(HEADERLESS_TWO_FILES);
+    expect(files[0]?.hunks).toHaveLength(1);
+    expect(files[0]?.additions).toBe(1);
+    expect(files[0]?.deletions).toBe(1);
+  });
+
+  it('still returns [] for prose without file markers', () => {
+    expect(parseDiff(MALFORMED_NO_HEADER)).toHaveLength(0);
+  });
+});
+
+// ===========================================================================
 // inferLanguage
 // ===========================================================================
 

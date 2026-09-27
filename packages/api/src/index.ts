@@ -26,12 +26,8 @@ import { randomUUID } from 'node:crypto';
 import { initTRPC } from '@trpc/server';
 import { z } from 'zod';
 
-import { AnalysisPipeline } from '@mergemind/analysis';
-import { InMemoryAdapter, createRepositoryContext } from '@mergemind/git-ingest';
-import { runVerification } from '@mergemind/verification';
+import { runEngineVerification } from './engine-verification.js';
 import type {
-  AgentProgress,
-  BranchRef,
   ChangedFile,
   FeatureRequest,
   RepositorySource,
@@ -125,10 +121,9 @@ const verifyRouter = router({
    * Returns immediately with a verificationId and PENDING status.
    * The actual run is async — poll `verify.result` for completion.
    *
-   * EXTENSION POINT
-   * ---------------
-   * Swap InMemoryAdapter for LocalGitAdapter or GithubApiAdapter here.
-   * Inject real Bob runners into AnalysisPipeline.create([...]).
+   * Analysis is deterministic and engine-backed (see engine-verification.ts).
+   * For live Bob agent analysis, pass Bob runners through AnalysisPipeline
+   * and inject the resulting assumptions here.
    */
   start: procedure
     .input(
@@ -204,40 +199,7 @@ async function runAnalysis(
   repositorySource: RepositorySource,
   changedFiles: ChangedFile[],
 ): Promise<void> {
-  // Build an in-memory adapter from the supplied branches + diffs
-  const branchMap = new Map<string, BranchRef>();
-  branchMap.set(repositorySource.baseBranch.name, repositorySource.baseBranch);
-  for (const fb of repositorySource.featureBranches) {
-    branchMap.set(fb.name, fb);
-  }
-  const adapter = new InMemoryAdapter(branchMap, changedFiles);
-
-  const { source, changedFiles: ingestedFiles } = await createRepositoryContext(
-    adapter,
-    {
-      name: repositorySource.name,
-      cloneUrl: repositorySource.cloneUrl,
-      provider: repositorySource.provider,
-    },
-    repositorySource.baseBranch.name,
-    repositorySource.featureBranches.map((fb) => fb.name),
-  );
-
-  const pipeline = AnalysisPipeline.create();
-  const progressLog: AgentProgress[] = [];
-
-  const { assumptions } = await pipeline.run(featureRequest, source, (p) => {
-    progressLog.push(p);
-  });
-
-  const distinctFiles = new Set(ingestedFiles.map((f) => f.path));
-
-  const result = runVerification({
-    featureRequest,
-    repositorySource: source,
-    filesChanged: distinctFiles.size,
-    assumptions,
-  });
+  const result = await runEngineVerification(featureRequest, repositorySource, changedFiles);
 
   // Override the generated ID with the one we advertised
   resultStore.set(verificationId, { ...result, id: verificationId });

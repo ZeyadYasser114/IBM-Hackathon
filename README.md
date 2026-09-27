@@ -129,6 +129,11 @@ verify_github_repository  → clone a public GitHub repo and verify two refs
     "args": ["<repo>/packages/mcp-server/dist/index.js"] } } }
 ```
 
+Scope: officially in scope and tested (`pnpm --filter @mergemind/mcp-server test`).
+Owned by the integration track; both tools run the same deterministic engine as
+the API — findings are never invented. Requires `pnpm build` first (stdio entry
+is `dist/index.js`).
+
 ---
 
 ## Quick Start

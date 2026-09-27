@@ -4,12 +4,14 @@
  * Exercises the tRPC router directly (no HTTP server):
  *   1. health.check returns an ok status with version info.
  *   2. verify.start accepts a minimal run and returns a PENDING id.
- *   3. verify.result resolves to a completed PASS result once the stub
- *      pipeline finishes (stubs extract no assumptions → no conflicts).
+ *   3. verify.result resolves to a completed PASS result for empty input
+ *      (no changes → no assumptions → no conflicts).
  *   4. verify.result returns null for unknown ids.
+ *   5. Killer example (owner vs admin) resolves to CONFLICTS_FOUND/HIGH.
+ *   6. Negative control (owner vs owner) resolves to PASS with 0 conflicts.
  *
- * These are wiring tests, not detector tests — they prove the service-layer
- * plumbing (validation → ingest → pipeline → store → poll) works end to end.
+ * These are wiring tests proving the service-layer plumbing
+ * (validation → ingest → deterministic engine → store → poll) works end to end.
  */
 
 import { appRouter } from './index.js';
@@ -73,7 +75,7 @@ describe('verify.start / verify.result', () => {
     expect(started.verificationId.length).toBeGreaterThan(0);
   });
 
-  it('completes to a PASS result with the stub pipeline', async () => {
+  it('completes to a PASS result for empty input', async () => {
     const started = await caller.verify.start({
       featureRequest: FEATURE_REQUEST,
       repositorySource: REPOSITORY_SOURCE,
@@ -82,9 +84,97 @@ describe('verify.start / verify.result', () => {
     const result = await pollResult(started.verificationId);
     expect(result.id).toBe(started.verificationId);
     expect(result.status).toBe('PASS');
-    expect(result.summary.assumptionsFound).toBe(0);
+    // The requirement text itself yields one business-rule assumption; with no
+    // changes there is nothing for it to conflict with.
+    expect(result.summary.assumptionsFound).toBe(1);
     expect(result.summary.conflictsFound).toBe(0);
     expect(result.errorMessage).toBeNull();
+  });
+
+  it('detects the killer example (owner vs admin) as HIGH conflict', async () => {
+    const kickRepository = {
+      ...REPOSITORY_SOURCE,
+      featureBranches: [
+        { name: 'feature/auth-roles', sha: 'b'.repeat(40) },
+        { name: 'feature/billing-permissions', sha: 'c'.repeat(40) },
+      ],
+    };
+    const started = await caller.verify.start({
+      featureRequest: {
+        ...FEATURE_REQUEST,
+        description: 'Add organization billing. Only organization owners can manage subscriptions.',
+        rules: ['Only organization owners can manage subscriptions.'],
+      },
+      repositorySource: kickRepository,
+      changedFiles: [
+        {
+          path: 'auth/roles.ts',
+          kind: 'MODIFIED',
+          patch: `export const ORG_PRIVILEGED_ROLE = 'owner';\nUser.role = ORG_PRIVILEGED_ROLE;`,
+          additions: 1,
+          deletions: 1,
+          branchName: 'feature/auth-roles',
+          language: 'typescript',
+        },
+        {
+          path: 'billing/permissions.ts',
+          kind: 'MODIFIED',
+          patch: `if (user.role === 'admin') {\n  return manageSubscription();\n}`,
+          additions: 2,
+          deletions: 1,
+          branchName: 'feature/billing-permissions',
+          language: 'typescript',
+        },
+      ],
+    });
+    const result = await pollResult(started.verificationId);
+    expect(result.status).toBe('FAIL');
+    expect(result.summary.conflictsFound).toBe(1);
+    expect(result.conflicts).toHaveLength(1);
+    expect(result.conflicts[0]?.severity).toBe('HIGH');
+    expect(result.conflicts[0]?.category).toBe('BUSINESS_RULE');
+    expect(result.conflicts[0]?.affectedFiles).toContain('auth/roles.ts');
+    expect(result.conflicts[0]?.affectedFiles).toContain('billing/permissions.ts');
+  });
+
+  it('passes the negative control (owner vs owner) with 0 conflicts', async () => {
+    const started = await caller.verify.start({
+      featureRequest: {
+        ...FEATURE_REQUEST,
+        description: 'Add organization billing. Only organization owners can manage subscriptions.',
+        rules: ['Only organization owners can manage subscriptions.'],
+      },
+      repositorySource: {
+        ...REPOSITORY_SOURCE,
+        featureBranches: [
+          { name: 'feature/auth-roles', sha: 'b'.repeat(40) },
+          { name: 'feature/billing-permissions', sha: 'c'.repeat(40) },
+        ],
+      },
+      changedFiles: [
+        {
+          path: 'auth/roles.ts',
+          kind: 'MODIFIED',
+          patch: `User.role = 'owner';`,
+          additions: 1,
+          deletions: 0,
+          branchName: 'feature/auth-roles',
+          language: 'typescript',
+        },
+        {
+          path: 'billing/permissions.ts',
+          kind: 'MODIFIED',
+          patch: `if (user.role === 'owner') {\n  return manageSubscription();\n}`,
+          additions: 2,
+          deletions: 1,
+          branchName: 'feature/billing-permissions',
+          language: 'typescript',
+        },
+      ],
+    });
+    const result = await pollResult(started.verificationId);
+    expect(result.status).toBe('PASS');
+    expect(result.summary.conflictsFound).toBe(0);
   });
 
   it('returns null for an unknown verification id', async () => {

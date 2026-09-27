@@ -2,9 +2,8 @@
  * bob-assist.ts — opt-in Bob inference for the /demo verification path.
  *
  * Self-contained because the API server is CommonJS while
- * @mergemind/analysis ships as ESM (same reason remote.ts exists locally).
- * It mirrors the assumption JSON schema documented in
- * packages/analysis/src/bob/bob-prompts.ts — keep the two in sync.
+ * @mergemind/analysis ships as ESM. It mirrors the assumption JSON schema
+ * documented in packages/analysis/src/bob/bob-prompts.ts — keep the two in sync.
  *
  * Behavior: when BOB_API_KEY is set, each of the five roles is queried in
  * parallel and validated assumptions become extra engine input text. Any

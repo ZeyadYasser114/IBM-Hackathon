@@ -68,6 +68,27 @@ export { InMemoryAdapter } from './adapters/in-memory.js';
 export { PastedDiffAdapter } from './adapters/pasted-diff.js';
 
 // ---------------------------------------------------------------------------
+// Shared ingestion contract (ChangeSet → SemanticAnalysisInput)
+// ---------------------------------------------------------------------------
+export {
+  ingestChanges,
+  changeSetFromIngestResult,
+  buildSemanticAnalysisInput,
+  MAX_FILE_CHARS,
+  MAX_FILES_PER_CHANGE,
+} from './semantic-input.js';
+export type {
+  ChangeSource,
+  EvidenceSnippet,
+  FileChangeInput,
+  BranchComparison,
+  IngestionWarning,
+  ChangeSet,
+  SemanticChangeInput,
+  SemanticAnalysisInput,
+} from './semantic-input.js';
+
+// ---------------------------------------------------------------------------
 // Diff parser
 // ---------------------------------------------------------------------------
 export { parseDiff, inferLanguage } from './diff-parser.js';

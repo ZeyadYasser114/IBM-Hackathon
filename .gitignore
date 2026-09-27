@@ -5,9 +5,16 @@ node_modules/
 
 # Production / Build
 dist/
+dist-cjs/
 build/
 out/
 .next/
+
+# Compiled output accidentally emitted next to sources breaks jest's
+# relative module mapping (stale .js shadows the .ts source). Never commit.
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
 
 # Logs
 npm-debug.log*

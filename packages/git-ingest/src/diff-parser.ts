@@ -107,6 +107,7 @@ export type ParsedFile = {
  *   - Deleted files (deleted file mode)
  *   - Renamed files (rename from / rename to markers)
  *   - Binary files (Binary files ... differ)
+ *   - Header-less pasted diffs (`---`/`+++` markers only, no `diff --git` line)
  *   - Empty diffs (returns [])
  *   - Malformed / truncated input (skips unparseable chunks)
  *   - Non-string input (returns [] — never throws)
@@ -125,7 +126,36 @@ export function parseDiff(raw: string): ParsedFile[] {
     const parsed = parseChunk(chunk);
     if (parsed !== null) results.push(parsed);
   }
+
+  if (results.length === 0) {
+    // Fallback for header-less pasted diffs that only carry `---`/`+++`
+    // file markers (e.g. fixture patches). A synthetic `diff --git` header
+    // is derived from the markers so the same chunk parser applies.
+    for (const chunk of raw.split(/^(?=--- [^ ])/m).filter((c) => c.trim())) {
+      const withHeader = prependSyntheticHeader(chunk);
+      if (!withHeader) continue;
+      const parsed = parseChunk(withHeader);
+      if (parsed !== null) results.push(parsed);
+    }
+  }
   return results;
+}
+
+/**
+ * Derive a synthetic `diff --git` header from `---`/`+++` file markers.
+ * Returns null when neither marker yields a usable path.
+ */
+function prependSyntheticHeader(chunk: string): string | null {
+  const lines = chunk.split('\n');
+  const fromPath = (lines[0] ?? '').match(/^--- (?:a\/)?(.+)$/)?.[1]?.trim();
+  const toLine = lines.find((line) => line.startsWith('+++ '));
+  const toPath = toLine?.match(/^\+\+\+ (?:b\/)?(.+)$/)?.[1]?.trim();
+  if (!fromPath || fromPath === '/dev/null') {
+    if (!toPath || toPath === '/dev/null') return null;
+    return [`diff --git a/${toPath} b/${toPath}`, ...lines].join('\n');
+  }
+  const bPath = !toPath || toPath === '/dev/null' ? fromPath : toPath;
+  return [`diff --git a/${fromPath} b/${bPath}`, ...lines].join('\n');
 }
 
 // ---------------------------------------------------------------------------

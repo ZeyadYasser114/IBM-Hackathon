@@ -19,7 +19,6 @@
  */
 
 import type { CodeEvidence } from '@mergemind/domain';
-import { EvidenceSource } from '@mergemind/domain';
 import type { ParsedFile, DiffHunk } from './diff-parser.js';
 
 // Maximum lines of diff content to include in a snippet
@@ -37,7 +36,7 @@ export function buildEvidenceForFile(file: ParsedFile, branchName: string): Code
   if (file.isBinary) {
     return [
       {
-        source: EvidenceSource.FILE_CHANGE,
+        source: 'FILE_CHANGE',
         filePath: file.path,
         lineStart: null,
         lineEnd: null,
@@ -55,7 +54,7 @@ export function buildEvidenceForFile(file: ParsedFile, branchName: string): Code
   if (file.kind === 'RENAMED' && file.hunks.length === 0) {
     return [
       {
-        source: EvidenceSource.FILE_CHANGE,
+        source: 'FILE_CHANGE',
         filePath: file.path,
         lineStart: null,
         lineEnd: null,
@@ -73,7 +72,7 @@ export function buildEvidenceForFile(file: ParsedFile, branchName: string): Code
   if (file.kind === 'DELETED' && file.hunks.length === 0) {
     return [
       {
-        source: EvidenceSource.FILE_CHANGE,
+        source: 'FILE_CHANGE',
         filePath: file.path,
         lineStart: null,
         lineEnd: null,
@@ -124,7 +123,7 @@ function buildEvidenceForHunk(
   }
 
   return {
-    source: EvidenceSource.FILE_CHANGE,
+    source: 'FILE_CHANGE',
     filePath: file.path,
     lineStart,
     lineEnd,

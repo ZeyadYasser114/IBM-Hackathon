@@ -19,6 +19,7 @@
     "typecheck": "pnpm -r --filter \"./packages/*\" typecheck && pnpm -r --filter \"./apps/*\" typecheck",
     "lint": "pnpm -r --filter \"./packages/*\" lint && pnpm -r --filter \"./apps/*\" lint",
     "test": "pnpm -r --filter \"./packages/*\" test",
+    "pretest": "pnpm -r --filter \"./packages/*\" build",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",

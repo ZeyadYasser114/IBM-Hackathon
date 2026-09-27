@@ -11,5 +11,5 @@ export default {
   },
   // Never run compiled output: dist/ suites are stale duplicates of src/
   // and once masked a real failure behind passing stale tests.
-  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/dist-cjs/'],
 };

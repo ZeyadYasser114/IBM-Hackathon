@@ -35,7 +35,11 @@ import type {
   ConflictReport,
 } from '@mergemind/semantic-engine';
 
-import { cloneAndDiff, splitDiffByFile } from './remote';
+import {
+  ingestRemoteRepository,
+  changeSetFromIngestResult,
+  buildSemanticAnalysisInput,
+} from '@mergemind/git-ingest';
 import { runBobAssist } from './bob-assist';
 
 // ── Types for the HTTP API ────────────────────────────────────────────────────
@@ -211,65 +215,82 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
     let changeBContent: string;
     let snippetsA: { filePath: string; sourceType: SourceType; content: string }[] = [];
     let snippetsB: { filePath: string; sourceType: SourceType; content: string }[] = [];
+    const ingestWarnings: string[] = [];
+
+    // Map one contract change to engine input under the single-feed rule:
+    // payload travels in fileSnippets when files exist, else in content.
+    const toEngineFeed = (
+      files: Array<{ path: string; content: string }>,
+      branch: string,
+    ): { content: string; snippets: typeof snippetsA } => {
+      const usable = files.filter((f) => f.content.trim().length > 0);
+      if (usable.length === 0) {
+        return {
+          content: `No textual differences between ${baseBranch} and ${branch}.`,
+          snippets: [],
+        };
+      }
+      return {
+        content: '—',
+        snippets: usable.map((f) => ({
+          filePath: f.path,
+          sourceType: SourceType.CODE_DIFF,
+          content: f.content,
+        })),
+      };
+    };
 
     if (isGitHubUrl(session.input.repository) && codeA === undefined && codeB === undefined) {
-      // ── Real remote ingestion path ──
+      // ── Real remote ingestion path (shared @mergemind/git-ingest contract) ──
       session.status = 'INGESTING';
-      const ingested = await cloneAndDiff(session.input.repository, baseBranch, branchA, branchB);
+      const ingested = await ingestRemoteRepository({
+        repository: session.input.repository,
+        baseBranch,
+        changeA: branchA,
+        changeB: branchB,
+      });
       try {
-        session.filesChanged = ingested.files.length;
-        session.changedFiles = ingested.files;
-        changeAContent =
-          ingested.diffA.trim().length > 0
-            ? ingested.diffA
-            : `No textual differences between ${baseBranch} and ${branchA}.`;
-        changeBContent =
-          ingested.diffB.trim().length > 0
-            ? ingested.diffB
-            : `No textual differences between ${baseBranch} and ${branchB}.`;
-        // Per-file snippets preserve real file attribution in engine evidence.
-        // Falls back to a single whole-diff snippet when headers are absent.
-        snippetsA = splitDiffByFile(ingested.diffA).map((f) => ({
-          filePath: f.path,
-          sourceType: SourceType.CODE_DIFF,
-          content: f.content,
-        }));
-        if (snippetsA.length === 0 && ingested.diffA.trim().length > 0) {
-          snippetsA = [
-            {
-              filePath: `${branchA}.diff`,
-              sourceType: SourceType.CODE_DIFF,
-              content: changeAContent,
-            },
-          ];
-        }
-        snippetsB = splitDiffByFile(ingested.diffB).map((f) => ({
-          filePath: f.path,
-          sourceType: SourceType.CODE_DIFF,
-          content: f.content,
-        }));
-        if (snippetsB.length === 0 && ingested.diffB.trim().length > 0) {
-          snippetsB = [
-            {
-              filePath: `${branchB}.diff`,
-              sourceType: SourceType.CODE_DIFF,
-              content: changeBContent,
-            },
-          ];
-        }
+        const semantic = buildSemanticAnalysisInput(
+          changeSetFromIngestResult(ingested),
+          featureRequest,
+        );
+        const distinctPaths = Array.from(
+          new Set(semantic.changes.flatMap((c) => c.files.map((f) => f.path))),
+        ).sort();
+        session.filesChanged = distinctPaths.length;
+        session.changedFiles = distinctPaths;
+        ingestWarnings.push(...semantic.warnings.map((w) => `${w.code}: ${w.message}`));
+        const byBranch = new Map(semantic.changes.map((c) => [c.branchName, c.files] as const));
+        ({ content: changeAContent, snippets: snippetsA } = toEngineFeed(
+          byBranch.get(branchA) ?? [],
+          branchA,
+        ));
+        ({ content: changeBContent, snippets: snippetsB } = toEngineFeed(
+          byBranch.get(branchB) ?? [],
+          branchB,
+        ));
       } finally {
         await ingested.cleanup();
       }
     } else {
       // ── Legacy path: caller-supplied code or placeholder (no clone) ──
       session.status = 'INGESTING';
-      changeAContent = codeA ?? `Changes from branch: ${branchA}`;
-      changeBContent = codeB ?? `Changes from branch: ${branchB}`;
+      // Single-feed rule: the snippet carries the payload, content is inert.
+      changeAContent = '—';
+      changeBContent = '—';
       snippetsA = [
-        { filePath: `${branchA}.ts`, sourceType: SourceType.CODE_DIFF, content: changeAContent },
+        {
+          filePath: `${branchA}.ts`,
+          sourceType: SourceType.CODE_DIFF,
+          content: codeA ?? `Changes from branch: ${branchA}`,
+        },
       ];
       snippetsB = [
-        { filePath: `${branchB}.ts`, sourceType: SourceType.CODE_DIFF, content: changeBContent },
+        {
+          filePath: `${branchB}.ts`,
+          sourceType: SourceType.CODE_DIFF,
+          content: codeB ?? `Changes from branch: ${branchB}`,
+        },
       ];
     }
 
@@ -281,21 +302,30 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
     // surface as warnings, never as fabricated assumptions.
     const bobDiagnostics: string[] = [];
     const bobChanges: ChangeDescription[] = [];
-    if ((process.env.BOB_API_KEY ?? '').trim().length > 0) {
+    // Bob needs real diff text (the '—' placeholders above are engine-only).
+    // Placeholder-only sessions skip Bob: nothing real to analyze.
+    const bobDiffA = snippetsA.map((s) => s.content).join('\n') || changeAContent;
+    const bobDiffB = snippetsB.map((s) => s.content).join('\n') || changeBContent;
+    const hasBobInputs =
+      (isGitHubUrl(session.input.repository) && codeA === undefined && codeB === undefined) ||
+      codeA !== undefined ||
+      codeB !== undefined;
+    if ((process.env.BOB_API_KEY ?? '').trim().length > 0 && hasBobInputs) {
       try {
         const assist = await runBobAssist({
           requirementText: featureRequest,
           branchA,
           branchB,
-          diffA: changeAContent,
-          diffB: changeBContent,
+          diffA: bobDiffA,
+          diffB: bobDiffB,
         });
         for (const t of assist.texts) {
           if (t.content.trim().length === 0) continue;
           bobChanges.push({
             id: `change-bob-${t.agent}`,
             label: `Bob ${t.agent} findings`,
-            content: t.content,
+            // Single-feed rule: validated Bob text travels in the snippet.
+            content: '—',
             fileSnippets: [
               {
                 filePath: `bob-${t.agent}-findings.txt`,
@@ -338,7 +368,7 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
     const extractor = new DeterministicExtractor({ defaultSourceType: SourceType.CODE_DIFF });
     const pipeline = new ExtractionPipeline(extractor);
     const { assumptions, diagnostics } = await pipeline.run(input);
-    const allDiagnostics = [...diagnostics, ...bobDiagnostics];
+    const allDiagnostics = [...diagnostics, ...bobDiagnostics, ...ingestWarnings];
 
     // Step 2: Normalize
     const normalized = normalizeAssumptions(assumptions);

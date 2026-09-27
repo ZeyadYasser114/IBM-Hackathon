@@ -52,8 +52,11 @@ export interface ConflictDetector {
 // ---------------------------------------------------------------------------
 
 /**
- * Placeholder that finds no conflicts.
- * Replace with a real implementation in the conflict-detection branch.
+ * Placeholder that finds no conflicts. Test double only.
+ *
+ * @deprecated Production paths must inject a real ConflictDetector (e.g. the
+ * engine-backed StaticFindingsDetector in @mergemind/api). Relying on the
+ * default always yields PASS, which misrepresents unverified changes.
  */
 export class StubConflictDetector implements ConflictDetector {
   detect(_assumptions: Assumption[], _request: FeatureRequest): ConflictFinding[] {
