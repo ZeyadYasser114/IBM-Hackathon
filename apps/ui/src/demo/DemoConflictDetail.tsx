@@ -2,23 +2,29 @@
 // Demo: Conflict Detail
 //
 // Story beats 6 + 7:
-//   Step 6 (detail)     — full evidence displayed for s1-conf
-//   Step 7 (resolution) — Bob resolution accepted, animated to resolved state
+//   Step 6 (detail)     — full evidence for the real conflict
+//   Step 7 (resolution) — suggested resolution accepted (local MVP state)
 //
-// "Accept resolution" button advances to step 7 (resolution) then after the
-// simulated fix completes, advances to step 8 (tests / passport).
+// Live path renders the actual conflict from demo.liveSession. The suggested
+// resolution is the engine's verificationHint — the source repository is NOT
+// modified by accepting. Fixture fallback keeps the original offline story.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
 import { SeverityBadge } from '@/components/StatusBadge';
 import { useDemoMode } from '@/demo/demoContext';
 import { SCENARIO_OWNER_ADMIN } from '@/graph/graphScenarios';
+import { DEMO_SESSION } from '@/data/demoFixtures';
 import type { EvidenceExcerpt, Assumption } from '@/types/semantic';
 
-const CONFLICT = SCENARIO_OWNER_ADMIN.conflicts[0]!;
+const FIXTURE_CONFLICT = SCENARIO_OWNER_ADMIN.conflicts[0]!;
 
 export function DemoConflictDetail() {
   const demo = useDemoMode();
+  const live = demo.liveSession && demo.sessionId !== DEMO_SESSION.id ? demo.liveSession : null;
+  const conflict = live ? live.graph.conflicts[0] : FIXTURE_CONFLICT;
+  const isFixture = !live;
+
   const [accepting, setAccepting] = useState(false);
   const [resolved, setResolved] = useState(demo.currentStep.id === 'resolution');
 
@@ -39,9 +45,37 @@ export function DemoConflictDetail() {
     demo.advance(); // resolution → tests/passport
   };
 
-  const severityColor = 'var(--high)';
-  const severityBorder = 'var(--high-border)';
-  const severityBg = 'var(--high-bg)';
+  if (!conflict) {
+    return (
+      <div className="fade-in" style={{ maxWidth: 860, margin: '0 auto' }}>
+        <div
+          className="card"
+          style={{
+            borderColor: 'var(--low-border)',
+            background: 'var(--low-bg)',
+            marginBottom: 'var(--sp-5)',
+          }}
+        >
+          <h2 style={{ color: 'var(--pass)', marginBottom: 'var(--sp-3)' }}>
+            No conflicts to inspect
+          </h2>
+          <p style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.8 }}>
+            Live analysis found no semantic conflicts for this change set. Continue to the Change
+            Passport for the verification record.
+          </p>
+        </div>
+        <button className="btn btn-primary" onClick={() => demo.jumpTo('passport')}>
+          View Change Passport →
+        </button>
+      </div>
+    );
+  }
+
+  const severityColor = conflict.severity === 'HIGH' ? 'var(--high)' : 'var(--medium)';
+  const severityBorder =
+    conflict.severity === 'HIGH' ? 'var(--high-border)' : 'var(--medium-border)';
+  const severityBg = conflict.severity === 'HIGH' ? 'var(--high-bg)' : 'var(--medium-bg)';
+  const resolutionText = conflict.proposedResolution ?? conflict.verificationHint;
 
   return (
     <div className="fade-in" style={{ maxWidth: 860, margin: '0 auto' }}>
@@ -65,7 +99,7 @@ export function DemoConflictDetail() {
         }}
       >
         <div className="row gap-2" style={{ marginBottom: 'var(--sp-3)', flexWrap: 'wrap' }}>
-          <SeverityBadge severity={CONFLICT.severity} />
+          <SeverityBadge severity={conflict.severity} />
           <span
             className="badge"
             style={{
@@ -75,7 +109,7 @@ export function DemoConflictDetail() {
               fontFamily: 'var(--mono)',
             }}
           >
-            BUSINESS RULE
+            {conflict.kind.replace('_', ' ')}
           </span>
           <span
             className="badge"
@@ -85,7 +119,7 @@ export function DemoConflictDetail() {
               borderColor: 'var(--low-border)',
             }}
           >
-            ● 97% confidence
+            ● {conflict.confidence}% confidence
           </span>
           {resolved && (
             <span className="badge badge-pass" style={{ marginLeft: 'auto' }}>
@@ -100,10 +134,10 @@ export function DemoConflictDetail() {
             lineHeight: 1.3,
           }}
         >
-          {CONFLICT.title}
+          {conflict.title}
         </h2>
         <p style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.8 }}>
-          {CONFLICT.description}
+          {conflict.description}
         </p>
       </div>
 
@@ -122,7 +156,7 @@ export function DemoConflictDetail() {
             lineHeight: 1.6,
           }}
         >
-          {CONFLICT.requirementText}
+          {conflict.requirementText}
         </blockquote>
       </DemoSection>
 
@@ -141,10 +175,7 @@ export function DemoConflictDetail() {
           }}
         >
           <span style={{ fontFamily: 'var(--mono)', color: 'var(--medium)', fontWeight: 600 }}>
-            User.role
-          </span>
-          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-            the string value that gates subscription management
+            {conflict.affectedContract}
           </span>
         </div>
       </DemoSection>
@@ -160,45 +191,50 @@ export function DemoConflictDetail() {
           }}
         >
           <AsmCard
-            assumption={CONFLICT.assumptionA}
-            label="Authentication change"
+            assumption={conflict.assumptionA}
+            label={`Change A · ${conflict.assumptionA.producedBy}`}
             accent="#6fdc8c"
             accentBg="rgba(66,190,101,0.07)"
           />
           <AsmCard
-            assumption={CONFLICT.assumptionB}
-            label="Billing change"
+            assumption={conflict.assumptionB}
+            label={`Change B · ${conflict.assumptionB.producedBy}`}
             accent="var(--high)"
             accentBg="var(--high-bg)"
           />
         </div>
-        {/* Visual clash */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 'var(--sp-5)',
-            padding: 'var(--sp-4) var(--sp-6)',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-          }}
-        >
-          <ClashPill file="auth/roles.ts" value='"owner"' color="var(--low)" />
-          <div style={{ fontSize: 24, color: 'var(--high)', fontWeight: 700 }}>≠</div>
-          <ClashPill file="billing/permissions.ts" value='"admin"' color="var(--high)" />
-        </div>
+        {/* Affected files */}
+        {conflict.affectedFiles.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--sp-3)',
+              padding: 'var(--sp-4)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              flexWrap: 'wrap',
+            }}
+          >
+            {conflict.affectedFiles.map((f) => (
+              <span key={f} className="tag mono" style={{ fontSize: 12 }}>
+                {f}
+              </span>
+            ))}
+          </div>
+        )}
       </DemoSection>
 
       {/* ── Evidence ── */}
       <DemoSection
         icon="🔬"
-        title={`Evidence excerpts (${CONFLICT.evidenceExcerpts.length})`}
+        title={`Evidence excerpts (${conflict.evidenceExcerpts.length})`}
         hint="Code that makes this finding auditable"
       >
         <div className="stack gap-3">
-          {CONFLICT.evidenceExcerpts.map((e, idx) => (
+          {conflict.evidenceExcerpts.map((e, idx) => (
             <EvidCard key={idx} excerpt={e} index={idx} />
           ))}
         </div>
@@ -206,7 +242,11 @@ export function DemoConflictDetail() {
 
       {/* ── Resolution ── */}
       {!resolved && (
-        <DemoSection icon="🤖" title="Bob-proposed resolution">
+        <DemoSection
+          icon="🤖"
+          title={isFixture ? 'Bob-proposed resolution' : 'Suggested resolution'}
+          hint={isFixture ? undefined : 'From the engine verification hint — advisory only'}
+        >
           <div
             className="card"
             style={{
@@ -222,8 +262,13 @@ export function DemoConflictDetail() {
                 color: 'var(--text)',
               }}
             >
-              {CONFLICT.proposedResolution}
+              {resolutionText}
             </p>
+            {!isFixture && (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 'var(--sp-4)' }}>
+                Accepting records the resolution locally. The source repository is not modified.
+              </p>
+            )}
             <div className="row gap-3">
               <button
                 className="btn btn-primary"
@@ -256,27 +301,34 @@ export function DemoConflictDetail() {
         >
           <div className="row gap-2" style={{ marginBottom: 'var(--sp-3)' }}>
             <span>✅</span>
-            <h3 style={{ color: 'var(--pass)' }}>Resolution applied</h3>
+            <h3 style={{ color: 'var(--pass)' }}>Resolution accepted</h3>
           </div>
-          <ul
-            style={{
-              fontSize: 13,
-              color: 'var(--text)',
-              lineHeight: 1.8,
-              paddingLeft: 'var(--sp-5)',
-              marginBottom: 'var(--sp-4)',
-            }}
-          >
-            <li>
-              <code>billing/permissions.ts</code> line 32: <code>role === "owner"</code>
-            </li>
-            <li>
-              New test: <code>"admin cannot manage organization subscription"</code>
-            </li>
-            <li style={{ color: 'var(--pass)', fontWeight: 600 }}>
-              Test suite: 42 → <strong>43 passing</strong>
-            </li>
-          </ul>
+          {isFixture ? (
+            <ul
+              style={{
+                fontSize: 13,
+                color: 'var(--text)',
+                lineHeight: 1.8,
+                paddingLeft: 'var(--sp-5)',
+                marginBottom: 'var(--sp-4)',
+              }}
+            >
+              <li>
+                <code>billing/permissions.ts</code> line 32: <code>role === &quot;owner&quot;</code>
+              </li>
+              <li>
+                New test: <code>&quot;admin cannot manage organization subscription&quot;</code>
+              </li>
+              <li style={{ color: 'var(--pass)', fontWeight: 600 }}>
+                Test suite: 42 → <strong>43 passing</strong>
+              </li>
+            </ul>
+          ) : (
+            <p style={{ fontSize: 13, color: 'var(--text)', marginBottom: 'var(--sp-4)' }}>
+              Recorded locally for this session. The source repository was not modified — apply the
+              suggested change in your own branch.
+            </p>
+          )}
           <button
             className="btn btn-primary"
             onClick={handleViewPassport}
@@ -348,30 +400,6 @@ function AsmCard({
       <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
         <span className="mono">{assumption.sourceFile}</span> line {assumption.sourceLine}
       </div>
-    </div>
-  );
-}
-
-function ClashPill({ file, value, color }: { file: string; value: string; color: string }) {
-  return (
-    <div className="stack gap-1" style={{ alignItems: 'center' }}>
-      <span style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--mono)' }}>
-        {file.split('/').pop()}
-      </span>
-      <span
-        style={{
-          fontFamily: 'var(--mono)',
-          fontSize: 14,
-          fontWeight: 700,
-          color,
-          background: 'var(--surface)',
-          border: `1px solid ${color}`,
-          padding: '4px 14px',
-          borderRadius: 6,
-        }}
-      >
-        {value}
-      </span>
     </div>
   );
 }

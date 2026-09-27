@@ -15,6 +15,7 @@
     "ui:build": "pnpm --filter \"./apps/ui\" build",
     "api:dev": "pnpm --filter \"./apps/api\" dev",
     "dev:all": "pnpm --parallel --filter \"@mergemind/api-server\" --filter \"mergemind-ui\" dev",
+    "demo": "pnpm --parallel --filter \"@mergemind/api-server\" --filter \"mergemind-ui\" dev",
     "typecheck": "pnpm -r --filter \"./packages/*\" typecheck && pnpm -r --filter \"./apps/*\" typecheck",
     "lint": "pnpm -r --filter \"./packages/*\" lint && pnpm -r --filter \"./apps/*\" lint",
     "test": "pnpm -r --filter \"./packages/*\" test",

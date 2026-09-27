@@ -13,33 +13,50 @@ import { useState } from 'react';
 import { startAnalysis } from '@/adapters/semanticAdapter';
 import { useDemoMode } from '@/demo/demoContext';
 
-const DEMO_INPUT = {
-  repository: 'acme-org/platform',
+const DEFAULT_INPUT = {
+  repository: 'https://github.com/owner/repository',
+  baseBranch: 'main',
   featureRequest: 'Add organization billing. Only organization owners can manage subscriptions.',
   branchA: 'feature/auth-roles',
   branchB: 'feature/billing-permissions',
 };
 
-const CODE_DIFF_A = `// auth/roles.ts  (feature/auth-roles)
-export const ORG_PRIVILEGED_ROLE = 'owner';
-User.role = ORG_PRIVILEGED_ROLE;`;
-
-const CODE_DIFF_B = `// billing/permissions.ts  (feature/billing-permissions)
-if (user.role === 'admin') {
-  return manageSubscription();
-}`;
-
 export function DemoVerifyChange() {
   const demo = useDemoMode();
   const [loading, setLoading] = useState(false);
+  const [repository, setRepository] = useState(DEFAULT_INPUT.repository);
+  const [baseBranch, setBaseBranch] = useState(DEFAULT_INPUT.baseBranch);
+  const [branchA, setBranchA] = useState(DEFAULT_INPUT.branchA);
+  const [branchB, setBranchB] = useState(DEFAULT_INPUT.branchB);
+  const [featureRequest, setFeatureRequest] = useState(DEFAULT_INPUT.featureRequest);
+  const [error, setError] = useState<string | null>(null);
 
   const isGitCleanStep = demo.currentStep.id === 'git-clean';
 
   const handleVerify = async () => {
     setLoading(true);
-    await startAnalysis(DEMO_INPUT);
-    demo.advance(); // verify → git-clean (same route, DemoBar advances)
-    setLoading(false);
+    setError(null);
+    demo.setSessionError(null);
+    demo.setSessionStatus('PENDING');
+    try {
+      const sessionId = await startAnalysis({
+        repository: repository.trim(),
+        baseBranch: baseBranch.trim() || 'main',
+        featureRequest: featureRequest.trim(),
+        branchA: branchA.trim(),
+        branchB: branchB.trim(),
+      });
+      demo.setSessionId(sessionId);
+      demo.setLiveSession(null);
+      demo.advance(); // verify → git-clean (same route, DemoBar advances)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setError(message);
+      demo.setSessionError(message);
+      demo.setSessionStatus('ERROR');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -56,25 +73,91 @@ export function DemoVerifyChange() {
         </p>
       </div>
 
-      {/* ── Input summary ── */}
-      <div className="card" style={{ marginBottom: 'var(--sp-5)' }}>
-        <FieldRow label="Repository" value={DEMO_INPUT.repository} mono />
-        <FieldRow label="Feature request" value={DEMO_INPUT.featureRequest} />
-        <FieldRow label="Branch A" value={DEMO_INPUT.branchA} mono />
-        <FieldRow label="Branch B" value={DEMO_INPUT.branchB} mono />
-      </div>
+      {/* ── Real verification input ── */}
+      <div className="card stack gap-3" style={{ marginBottom: 'var(--sp-5)' }}>
+        <div className="stack gap-3">
+          <label htmlFor="demo-repo">Repository (public GitHub URL)</label>
+          <input
+            id="demo-repo"
+            className="input-field input-mono"
+            value={repository}
+            onChange={(e) => setRepository(e.target.value)}
+            placeholder="https://github.com/owner/repository"
+            required
+          />
+        </div>
 
-      {/* ── Code diffs ── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 'var(--sp-4)',
-          marginBottom: 'var(--sp-5)',
-        }}
-      >
-        <CodePanel label="Authentication change" code={CODE_DIFF_A} accent="var(--low)" />
-        <CodePanel label="Billing change" code={CODE_DIFF_B} accent="var(--medium)" />
+        <div className="stack gap-3">
+          <label htmlFor="demo-feature">Feature request (original requirement)</label>
+          <textarea
+            id="demo-feature"
+            className="input-field"
+            rows={3}
+            value={featureRequest}
+            onChange={(e) => setFeatureRequest(e.target.value)}
+            placeholder="Describe what the change is supposed to do…"
+            required
+            style={{ resize: 'vertical', fontFamily: 'var(--font)' }}
+          />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--sp-4)' }}>
+          <div className="stack gap-3">
+            <label htmlFor="demo-base">Base branch</label>
+            <input
+              id="demo-base"
+              className="input-field input-mono"
+              value={baseBranch}
+              onChange={(e) => setBaseBranch(e.target.value)}
+              placeholder="main"
+              required
+            />
+          </div>
+          <div className="stack gap-3">
+            <label htmlFor="demo-branchA">Change A (branch or commit)</label>
+            <input
+              id="demo-branchA"
+              className="input-field input-mono"
+              value={branchA}
+              onChange={(e) => setBranchA(e.target.value)}
+              placeholder="feature/my-change"
+              required
+            />
+          </div>
+          <div className="stack gap-3">
+            <label htmlFor="demo-branchB">Change B (branch or commit)</label>
+            <input
+              id="demo-branchB"
+              className="input-field input-mono"
+              value={branchB}
+              onChange={(e) => setBranchB(e.target.value)}
+              placeholder="feature/another-change"
+              required
+            />
+          </div>
+        </div>
+
+        <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+          MergeMind clones the repository, extracts the real diffs for both changes against the base
+          branch, and verifies them with the deterministic semantic engine. Source text only —
+          repository code is never executed.
+        </span>
+
+        {error && (
+          <div
+            role="alert"
+            style={{
+              padding: 'var(--sp-3) var(--sp-4)',
+              background: 'var(--high-bg)',
+              border: '1px solid var(--high-border)',
+              borderRadius: 'var(--radius)',
+              fontSize: 13,
+              color: 'var(--high)',
+            }}
+          >
+            {error}
+          </div>
+        )}
       </div>
 
       {/* ── Git precondition strip — always visible, highlighted in step 2 ── */}
@@ -183,54 +266,6 @@ export function DemoVerifyChange() {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
-
-function FieldRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="row gap-2" style={{ marginBottom: 6, fontSize: 13 }}>
-      <span style={{ color: 'var(--text-dim)', width: 110, flexShrink: 0 }}>{label}</span>
-      <span className={mono ? 'mono' : ''} style={{ color: 'var(--text)' }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function CodePanel({ label, code, accent }: { label: string; code: string; accent: string }) {
-  return (
-    <div
-      style={{ border: `1px solid ${accent}`, borderRadius: 'var(--radius)', overflow: 'hidden' }}
-    >
-      <div
-        style={{
-          padding: '6px 12px',
-          background: 'var(--surface-2)',
-          borderBottom: `1px solid ${accent}`,
-          fontSize: 11,
-          fontWeight: 600,
-          color: accent,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-        }}
-      >
-        {label}
-      </div>
-      <pre
-        style={{
-          margin: 0,
-          padding: 'var(--sp-3) var(--sp-4)',
-          background: 'var(--surface)',
-          fontSize: 12,
-          fontFamily: 'var(--mono)',
-          color: 'var(--text)',
-          lineHeight: 1.65,
-          whiteSpace: 'pre-wrap',
-        }}
-      >
-        {code}
-      </pre>
-    </div>
-  );
-}
 
 function GitCheck({ text }: { text: string }) {
   return (

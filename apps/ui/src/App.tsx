@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { VerifyChange } from '@/pages/VerifyChange';
 import { Analysis } from '@/pages/Analysis';
 import { ConflictGraph } from '@/pages/ConflictGraph';
 import { ConflictDetail } from '@/pages/ConflictDetail';
@@ -19,15 +18,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* ── Main entry: the demo is the app ─────────────────────────────── */}
+        <Route path="/" element={<Navigate to="/demo/verify" replace />} />
         {/* ── Regular exploration routes ──────────────────────────────── */}
-        <Route
-          element={
-            <Layout>
-              <VerifyChange />
-            </Layout>
-          }
-          path="/"
-        />
         <Route
           element={
             <Layout>

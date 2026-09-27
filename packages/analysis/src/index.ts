@@ -20,7 +20,9 @@
  * CURRENT STATE
  * -------------
  * The pipeline runs the full contract but uses stub runners that return empty
- * assumption arrays. Replace each stub with a real Bob runner independently.
+ * assumption arrays by default. Use createBobRunners() (see ./bob/) with a
+ * resolved Bob client for real inference, or pass any custom AgentRunner
+ * implementation. Replace each stub with a real Bob runner independently.
  */
 
 import type {
@@ -149,6 +151,41 @@ export class AnalysisPipeline {
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// IBM Bob runners (real inference via the AgentRunner contract)
+// ---------------------------------------------------------------------------
+
+export {
+  BobAgentRunner,
+  createBobRunners,
+  parseBobAssumptions,
+  bobAssumptionsToDiffText,
+  MAX_ASSUMPTIONS_PER_AGENT,
+  MAX_DIFF_CHARS,
+} from './bob/bob-runner.js';
+export type { BobAssumptionJson, BobRunnerInputs, BobRunnerSet } from './bob/bob-runner.js';
+
+export {
+  resolveBobConfig,
+  bobConfigFromEnv,
+  completeJson,
+  BobError,
+  BobConfigError,
+  BobAuthError,
+  BobRateLimitError,
+  BobTimeoutError,
+  BobNetworkError,
+  BobValidationError,
+  DEFAULT_BOB_API_BASE_URL,
+  DEFAULT_BOB_MODEL,
+  DEFAULT_BOB_TIMEOUT_MS,
+  BOB_MAX_TOKENS,
+} from './bob/bob-client.js';
+export type { BobClientOptions, ResolvedBobConfig } from './bob/bob-client.js';
+
+export { buildPromptFor, BOB_SYSTEM_PROMPT } from './bob/bob-prompts.js';
+export type { BobPromptInputs } from './bob/bob-prompts.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

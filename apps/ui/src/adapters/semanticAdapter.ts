@@ -70,18 +70,26 @@ interface ApiReport {
 
 interface ApiSession {
   id: string;
-  status: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'ERROR';
+  status: 'PENDING' | 'INGESTING' | 'ANALYZING' | 'VERIFYING' | 'RUNNING' | 'COMPLETE' | 'ERROR';
   startedAt: string;
   completedAt: string | null;
   input: VerifyChangeInput;
+  error?: string;
+  /** Developer merge attestation (null until marked via POST /api/session/:id/merge). */
+  merge?: { markedAt: string; note?: string } | null;
   result?: {
     status: string;
     summary: string;
     assumptionsFound: number;
     conflictsFound: number;
+    filesChanged: number | null;
+    changedFiles: string[];
     reports: ApiReport[];
   };
 }
+
+/** Raw API status values that can appear while a session is still running. */
+export type LiveSessionStatus = ApiSession['status'];
 
 // ── Ordinal → numeric mappings (display necessity: UI badges need 0–100) ──────
 // Engine confidence is ordinal (HIGH/MEDIUM/LOW); these are fixed representative
@@ -182,6 +190,12 @@ function buildLivePassport(
   status: ChangePassport['status'],
 ): ChangePassport {
   const result = api.result!;
+  // Only values actually measured by the backend are shown. Tests and coverage
+  // are never measured, so they stay null ("Not measured" in the UI).
+  const changedFiles = result.changedFiles ?? [];
+  const topDirs = [...new Set(changedFiles.map((f) => f.split('/')[0]).filter((s) => s))];
+  const conflictFiles = [...new Set(conflicts.flatMap((c) => c.affectedFiles))];
+  const components = [...new Set([...conflictFiles, ...topDirs])];
   return {
     id: `live-${api.id.slice(0, 8)}`,
     generatedAt: api.completedAt ?? new Date().toISOString(),
@@ -190,8 +204,8 @@ function buildLivePassport(
     intent: api.input.featureRequest,
     repository: api.input.repository,
     branches: [api.input.branchA, api.input.branchB],
-    filesChanged: null,
-    components: [...new Set(conflicts.flatMap((c) => c.affectedFiles))],
+    filesChanged: result.filesChanged,
+    components,
     assumptionsFound: result.assumptionsFound,
     assumptionsVerified: null,
     conflictsFound: result.conflictsFound,
@@ -207,20 +221,32 @@ function buildLivePassport(
 
 function buildLiveAgents(api: ApiSession): AgentRun[] {
   const r = api.result!;
+  // Honest summary of the deterministic engine result, shown on each completed
+  // stage row. These rows preserve the five-stage visual structure; they are
+  // pipeline stages, not claims of live Bob subagent execution.
   const finding = `${r.assumptionsFound} assumptions extracted · ${r.conflictsFound} conflicts found`;
   return DEMO_AGENTS.map((a) => ({ ...a, status: 'COMPLETE' as const, finding }));
 }
 
+/** Maximum conflicts rendered in the graph/passport lists. Counts stay exact. */
+export const MAX_DISPLAY_CONFLICTS = 100;
+
 /** Assemble a full AnalysisSession from a COMPLETE API payload. Returns null otherwise. */
 export function buildLiveSession(api: ApiSession): AnalysisSession | null {
   if (api.status !== 'COMPLETE' || !api.result) return null;
-  const conflicts = api.result.reports.map((r) => mapReportToConflict(r, api.input.featureRequest));
+  const all = api.result.reports.map((r) => mapReportToConflict(r, api.input.featureRequest));
+  // Display cap: engine reports are pre-sorted by severity, so the first N are
+  // the most important. Counts (conflictsFound) always reflect the full real
+  // total — only the rendered list is bounded to keep the graph usable.
+  const conflicts = all.slice(0, MAX_DISPLAY_CONFLICTS);
+  const truncated = all.length > conflicts.length;
   const status: ChangePassport['status'] =
     api.result.status === 'CONFLICTS_FOUND' ? 'FAIL' : 'PASS';
-  return {
+  const session = {
     id: api.id,
     input: {
       repository: api.input.repository,
+      baseBranch: api.input.baseBranch,
       featureRequest: api.input.featureRequest,
       branchA: api.input.branchA,
       branchB: api.input.branchB,
@@ -229,16 +255,100 @@ export function buildLiveSession(api: ApiSession): AnalysisSession | null {
     graph: buildLiveGraph(api, conflicts),
     passport: buildLivePassport(api, conflicts, status),
   };
+  if (truncated) {
+    const note = `Showing the first ${conflicts.length} of ${all.length} conflicts (ordered by severity).`;
+    session.passport = {
+      ...session.passport,
+      conflictsFound: all.length,
+      remainingRisk: [session.passport.remainingRisk, note].filter(Boolean).join(' '),
+    };
+  }
+  return session;
+}
+
+/** Interim stage labels shown while a real session is still running. Honest —
+ *  these describe pipeline stages, not live Bob subagents. */
+const STAGE_FINDINGS: Record<string, string> = {
+  PENDING: 'Session queued…',
+  INGESTING: 'Fetching repository and extracting real diffs…',
+  RUNNING: 'Analyzing changes…',
+  ANALYZING: 'Extracting semantic assumptions…',
+  VERIFYING: 'Checking assumptions for conflicts…',
+};
+
+/** Build a not-yet-complete AnalysisSession so progress screens stay honest. */
+export function buildInterimSession(api: ApiSession): AnalysisSession {
+  const stageOrder = ['PENDING', 'INGESTING', 'ANALYZING', 'VERIFYING'];
+  const stageIdx = Math.max(
+    0,
+    stageOrder.indexOf(api.status === 'RUNNING' ? 'ANALYZING' : api.status),
+  );
+  const agents = DEMO_AGENTS.map((a, idx) => ({
+    ...a,
+    status: (idx < stageIdx
+      ? 'COMPLETE'
+      : idx === stageIdx
+        ? 'RUNNING'
+        : 'PENDING') as AgentRun['status'],
+    finding:
+      idx < stageIdx
+        ? 'Done'
+        : idx === stageIdx
+          ? (STAGE_FINDINGS[api.status] ?? 'Working…')
+          : undefined,
+    elapsedMs: undefined,
+  }));
+  const conflicts: Conflict[] = [];
+  return {
+    id: api.id,
+    input: {
+      repository: api.input.repository,
+      baseBranch: api.input.baseBranch,
+      featureRequest: api.input.featureRequest,
+      branchA: api.input.branchA,
+      branchB: api.input.branchB,
+    },
+    agents,
+    graph: buildLiveGraph(api, conflicts),
+    passport: {
+      id: `live-${api.id.slice(0, 8)}`,
+      generatedAt: new Date().toISOString(),
+      sessionId: api.id,
+      feature: api.input.repository,
+      intent: api.input.featureRequest,
+      repository: api.input.repository,
+      branches: [api.input.branchA, api.input.branchB],
+      filesChanged: null,
+      components: [],
+      assumptionsFound: null,
+      assumptionsVerified: null,
+      conflictsFound: null,
+      conflictsResolved: null,
+      testsTotal: null,
+      testsPassing: null,
+      requirementCoverage: null,
+      remainingRisk: null,
+      status: 'PENDING',
+      conflicts,
+    },
+  };
 }
 
 async function fetchApiSession(sessionId: string): Promise<ApiSession | null> {
   try {
     const r = await fetch(`${API_BASE}/session/${sessionId}`);
+    if (r.status === 404) throw new Error('Session not found — it may have expired');
     if (!r.ok) return null;
     return (await r.json()) as ApiSession;
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('Session not found')) throw e;
     return null;
   }
+}
+
+/** Fetch the raw API session (any status). Used for real polling. */
+export async function fetchRawSession(sessionId: string): Promise<ApiSession | null> {
+  return fetchApiSession(sessionId);
 }
 
 /** Fetch a COMPLETE live session mapped to UI types. Null when unavailable/incomplete. */
@@ -265,13 +375,23 @@ export async function startAnalysis(input: VerifyChangeInput): Promise<string> {
       body: JSON.stringify({
         repository: input.repository,
         featureRequest: input.featureRequest,
+        baseBranch: input.baseBranch ?? 'main',
         branchA: input.branchA,
         branchB: input.branchB,
         ...(input.codeA !== undefined ? { codeA: input.codeA } : {}),
         ...(input.codeB !== undefined ? { codeB: input.codeB } : {}),
       }),
     });
-    if (!r.ok) throw new Error(`API error: ${r.status}`);
+    if (!r.ok) {
+      let detail = `API error: ${r.status}`;
+      try {
+        const body = (await r.json()) as { error?: string };
+        if (body.error) detail = body.error;
+      } catch {
+        // keep default detail
+      }
+      throw new Error(detail);
+    }
     const data = (await r.json()) as { sessionId: string };
     return data.sessionId;
   }
@@ -283,7 +403,12 @@ export async function startAnalysis(input: VerifyChangeInput): Promise<string> {
 
 /**
  * Poll a session by ID.
- * Live COMPLETE sessions return real analysis; otherwise progressive fixture.
+ *
+ * Real session IDs always take the live API path: COMPLETE returns the real
+ * mapped analysis, ERROR throws (never silently replaced by fixtures), and
+ * intermediate states return an honest interim session. Fixtures are only an
+ * offline fallback — when the API is unreachable — or for the fixture id
+ * itself. A successful real result is never overwritten by fixture data.
  */
 export async function getSession(
   sessionId: string,
@@ -295,11 +420,18 @@ export async function getSession(
     await delay(150);
     const api = await fetchApiSession(sessionId);
     if (api) {
-      const liveSession = buildLiveSession(api);
-      // Real result available — show it (agents stay complete, findings are real).
-      if (liveSession) return liveSession;
+      if (api.status === 'COMPLETE') {
+        const liveSession = buildLiveSession(api);
+        if (liveSession) return liveSession;
+        throw new Error('Session completed without a result');
+      }
+      if (api.status === 'ERROR') {
+        throw new Error(api.error ?? 'Verification failed');
+      }
+      return buildInterimSession(api);
     }
-    // While running, show progressive fixture
+    // Session missing on a reachable API — do not mask with fixtures.
+    throw new Error('Session not found — it may have expired');
   }
 
   // Demo fixture fallback — simulate agents completing one by one
@@ -325,4 +457,41 @@ export async function getCompletedSession(sessionId: string): Promise<AnalysisSe
   if (live) return live;
   await delay(200);
   return DEMO_SESSION;
+}
+
+export interface MergeAttestation {
+  markedAt: string;
+  note?: string;
+}
+
+/**
+ * Record that the developer merged the verified changes with Git.
+ * Advisory only — MergeMind never merges repositories itself.
+ * Only COMPLETE sessions can be marked (409 otherwise).
+ */
+export async function markMerged(sessionId: string, note?: string): Promise<MergeAttestation> {
+  const r = await fetch(`${API_BASE}/session/${sessionId}/merge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(note !== undefined ? { note } : {}),
+  });
+  if (!r.ok) {
+    let detail = `API error: ${r.status}`;
+    try {
+      const body = (await r.json()) as { error?: string };
+      if (body.error) detail = body.error;
+    } catch {
+      // keep default detail
+    }
+    throw new Error(detail);
+  }
+  const data = (await r.json()) as ApiSession;
+  if (!data.merge) throw new Error('Merge was not recorded');
+  return data.merge;
+}
+
+/** Read the current merge attestation for a session (null when unmarked). */
+export async function fetchMerge(sessionId: string): Promise<MergeAttestation | null> {
+  const api = await fetchRawSession(sessionId);
+  return api?.merge ?? null;
 }

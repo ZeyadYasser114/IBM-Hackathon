@@ -46,6 +46,23 @@ export type { IngestAdapter, RepositoryDescriptor, RepositoryIngestResult } from
 export { LocalGitAdapter, RealGitRunner } from './adapters/local-git.js';
 export type { GitRunner } from './adapters/local-git.js';
 
+export {
+  parseGitHubUrl,
+  validateRef,
+  assertDiffLimits,
+  ingestRemoteRepository,
+  CLONE_TIMEOUT_MS,
+  FETCH_TIMEOUT_MS,
+  GIT_TIMEOUT_MS,
+  MAX_DIFF_BYTES,
+  MAX_FILES,
+} from './adapters/remote-git.js';
+export type {
+  ParsedGitHubUrl,
+  RemoteIngestOptions,
+  RemoteIngestResult,
+} from './adapters/remote-git.js';
+
 export { InMemoryAdapter } from './adapters/in-memory.js';
 
 export { PastedDiffAdapter } from './adapters/pasted-diff.js';

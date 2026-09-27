@@ -105,8 +105,11 @@ export interface AgentRun {
 // ── Verify Change input ───────────────────────────────────────────────────────
 
 export interface VerifyChangeInput {
+  /** Canonical field: GitHub repository URL (https://github.com/<owner>/<repo>) or slug. */
   repository: string;
   featureRequest: string;
+  /** Base branch both changes are compared against. Defaults to "main". */
+  baseBranch?: string;
   branchA: string;
   branchB: string;
   /** Optional code diff for branch A — sent to the API when provided. */

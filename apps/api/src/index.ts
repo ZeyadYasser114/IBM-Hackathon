@@ -6,8 +6,13 @@
  *   GET  /api/session/:id   — poll a session result
  *   GET  /api/health        — health check
  *
- * Uses the deterministic semantic-engine package from hassan-dev branch.
- * No external AI calls needed — the engine runs locally.
+ * Real pipeline: GitHub repository ingestion (clone/fetch/diff as source
+ * text only — repository code is never executed) → deterministic
+ * semantic-engine analysis → ConflictReport[] served to the UI.
+ *
+ * Uses the deterministic semantic-engine package. No external AI calls —
+ * the engine runs locally. Bob/agent execution remains an extension point
+ * (see @mergemind/analysis AgentRunner) and is NOT claimed here.
  */
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -25,32 +30,56 @@ import {
 } from '@mergemind/semantic-engine';
 import type {
   AnalysisInput,
+  ChangeDescription,
   SemanticAnalysisResult,
   ConflictReport,
 } from '@mergemind/semantic-engine';
 
+import { cloneAndDiff, splitDiffByFile } from './remote';
+import { runBobAssist } from './bob-assist';
+
 // ── Types for the HTTP API ────────────────────────────────────────────────────
 
+export type SessionStatus =
+  'PENDING' | 'INGESTING' | 'ANALYZING' | 'VERIFYING' | 'COMPLETE' | 'ERROR';
+
 interface VerifyRequest {
+  /** Canonical field: public GitHub URL (https://github.com/<owner>/<repo>). */
   repository: string;
   featureRequest: string;
+  /** Base branch both changes are compared against. Defaults to "main". */
+  baseBranch?: string;
   branchA: string;
   branchB: string;
-  /** Optional code diffs for each branch */
+  /** Optional code diffs for each branch (legacy path, no clone). */
   codeA?: string;
   codeB?: string;
 }
 
 interface SessionRecord {
   id: string;
-  status: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'ERROR';
+  status: SessionStatus;
   input: VerifyRequest;
   startedAt: string;
   completedAt?: string;
   result?: SemanticAnalysisResult;
   /** Full explainable reports — served to UI clients so findings need no re-derivation. */
   reports?: readonly ConflictReport[];
+  /** Distinct changed files measured during ingestion (null when not ingested). */
+  filesChanged?: number;
+  changedFiles?: string[];
+  /**
+   * Developer merge attestation. Set via POST /api/session/:id/merge after
+   * the developer merges with Git. Advisory record only — MergeMind never
+   * merges or modifies the source repository itself.
+   */
+  merge?: MergeRecord;
   error?: string;
+}
+
+export interface MergeRecord {
+  markedAt: string;
+  note?: string;
 }
 
 // ── In-memory session store ───────────────────────────────────────────────────
@@ -62,7 +91,7 @@ const sessions = new Map<string, SessionRecord>();
 const app = express();
 
 app.use(cors({ origin: '*' }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // ── Health check ──────────────────────────────────────────────────────────────
 
@@ -79,12 +108,32 @@ app.post('/api/verify', (req: Request, res: Response) => {
     res.status(400).json({ error: 'featureRequest and repository are required' });
     return;
   }
+  if (!body.branchA || !body.branchB) {
+    res.status(400).json({ error: 'branchA and branchB are required' });
+    return;
+  }
+  // Fail fast for URL-shaped repositories that are not public GitHub URLs.
+  // Plain slugs (e.g. "acme-org/platform") keep the legacy no-clone path.
+  if (body.repository.includes('://') && !isGitHubUrl(body.repository)) {
+    res.status(400).json({
+      error: 'repository must be a public GitHub URL (https://github.com/<owner>/<repo>)',
+    });
+    return;
+  }
 
   const sessionId = uuidv4();
   const session: SessionRecord = {
     id: sessionId,
     status: 'PENDING',
-    input: body,
+    input: {
+      repository: body.repository,
+      featureRequest: body.featureRequest,
+      baseBranch: body.baseBranch?.trim() || 'main',
+      branchA: body.branchA,
+      branchB: body.branchB,
+      ...(body.codeA !== undefined ? { codeA: body.codeA } : {}),
+      ...(body.codeB !== undefined ? { codeB: body.codeB } : {}),
+    },
     startedAt: new Date().toISOString(),
   };
   sessions.set(sessionId, session);
@@ -106,6 +155,33 @@ app.get('/api/session/:id', (req: Request, res: Response) => {
   res.json(formatSession(session));
 });
 
+// ── POST /api/session/:id/merge ─────────────────────────────────────────────
+// Developer attestation that the verified changes were merged with Git.
+// Only COMPLETE sessions can be marked. This records the decision — it does
+// not perform any merge; the source repository is never touched.
+
+app.post('/api/session/:id/merge', (req: Request, res: Response) => {
+  const session = sessions.get(req.params.id);
+  if (!session) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+  if (session.status !== 'COMPLETE' || !session.result) {
+    res.status(409).json({ error: 'Only COMPLETE sessions can be marked as merged' });
+    return;
+  }
+  const note = (req.body as { note?: unknown } | undefined)?.note;
+  if (note !== undefined && (typeof note !== 'string' || note.length > 500)) {
+    res.status(400).json({ error: 'note must be a string of at most 500 characters' });
+    return;
+  }
+  session.merge = {
+    markedAt: new Date().toISOString(),
+    ...(typeof note === 'string' && note.trim().length > 0 ? { note: note.trim() } : {}),
+  };
+  res.json(formatSession(session));
+});
+
 // ── Error handler ─────────────────────────────────────────────────────────────
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
@@ -122,11 +198,120 @@ app.listen(PORT, () => {
 
 // ── Analysis runner ───────────────────────────────────────────────────────────
 
-async function runAnalysis(session: SessionRecord): Promise<void> {
-  session.status = 'RUNNING';
+function isGitHubUrl(repository: string): boolean {
+  return /^https:\/\/github\.com\//i.test(repository.trim());
+}
 
+async function runAnalysis(session: SessionRecord): Promise<void> {
   try {
     const { featureRequest, branchA, branchB, codeA, codeB } = session.input;
+    const baseBranch = session.input.baseBranch?.trim() || 'main';
+
+    let changeAContent: string;
+    let changeBContent: string;
+    let snippetsA: { filePath: string; sourceType: SourceType; content: string }[] = [];
+    let snippetsB: { filePath: string; sourceType: SourceType; content: string }[] = [];
+
+    if (isGitHubUrl(session.input.repository) && codeA === undefined && codeB === undefined) {
+      // ── Real remote ingestion path ──
+      session.status = 'INGESTING';
+      const ingested = await cloneAndDiff(session.input.repository, baseBranch, branchA, branchB);
+      try {
+        session.filesChanged = ingested.files.length;
+        session.changedFiles = ingested.files;
+        changeAContent =
+          ingested.diffA.trim().length > 0
+            ? ingested.diffA
+            : `No textual differences between ${baseBranch} and ${branchA}.`;
+        changeBContent =
+          ingested.diffB.trim().length > 0
+            ? ingested.diffB
+            : `No textual differences between ${baseBranch} and ${branchB}.`;
+        // Per-file snippets preserve real file attribution in engine evidence.
+        // Falls back to a single whole-diff snippet when headers are absent.
+        snippetsA = splitDiffByFile(ingested.diffA).map((f) => ({
+          filePath: f.path,
+          sourceType: SourceType.CODE_DIFF,
+          content: f.content,
+        }));
+        if (snippetsA.length === 0 && ingested.diffA.trim().length > 0) {
+          snippetsA = [
+            {
+              filePath: `${branchA}.diff`,
+              sourceType: SourceType.CODE_DIFF,
+              content: changeAContent,
+            },
+          ];
+        }
+        snippetsB = splitDiffByFile(ingested.diffB).map((f) => ({
+          filePath: f.path,
+          sourceType: SourceType.CODE_DIFF,
+          content: f.content,
+        }));
+        if (snippetsB.length === 0 && ingested.diffB.trim().length > 0) {
+          snippetsB = [
+            {
+              filePath: `${branchB}.diff`,
+              sourceType: SourceType.CODE_DIFF,
+              content: changeBContent,
+            },
+          ];
+        }
+      } finally {
+        await ingested.cleanup();
+      }
+    } else {
+      // ── Legacy path: caller-supplied code or placeholder (no clone) ──
+      session.status = 'INGESTING';
+      changeAContent = codeA ?? `Changes from branch: ${branchA}`;
+      changeBContent = codeB ?? `Changes from branch: ${branchB}`;
+      snippetsA = [
+        { filePath: `${branchA}.ts`, sourceType: SourceType.CODE_DIFF, content: changeAContent },
+      ];
+      snippetsB = [
+        { filePath: `${branchB}.ts`, sourceType: SourceType.CODE_DIFF, content: changeBContent },
+      ];
+    }
+
+    session.status = 'ANALYZING';
+
+    // Opt-in Bob analysis: when BOB_API_KEY is set, validated Bob assumptions
+    // become additional engine input. Bob never bypasses the engine — the
+    // deterministic pipeline below still makes the final verdict. Failures
+    // surface as warnings, never as fabricated assumptions.
+    const bobDiagnostics: string[] = [];
+    const bobChanges: ChangeDescription[] = [];
+    if ((process.env.BOB_API_KEY ?? '').trim().length > 0) {
+      try {
+        const assist = await runBobAssist({
+          requirementText: featureRequest,
+          branchA,
+          branchB,
+          diffA: changeAContent,
+          diffB: changeBContent,
+        });
+        for (const t of assist.texts) {
+          if (t.content.trim().length === 0) continue;
+          bobChanges.push({
+            id: `change-bob-${t.agent}`,
+            label: `Bob ${t.agent} findings`,
+            content: t.content,
+            fileSnippets: [
+              {
+                filePath: `bob-${t.agent}-findings.txt`,
+                sourceType: SourceType.CODE_DIFF,
+                content: t.content,
+              },
+            ],
+          });
+        }
+        bobDiagnostics.push(...assist.failures);
+      } catch (e) {
+        bobDiagnostics.push(
+          `Bob analysis unavailable: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+    }
 
     // Build the AnalysisInput for the semantic engine
     const input: AnalysisInput = {
@@ -136,31 +321,16 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
         {
           id: 'change-branch-a',
           label: branchA,
-          content: codeA ?? `Changes from branch: ${branchA}`,
-          fileSnippets: codeA
-            ? [
-                {
-                  filePath: `${branchA}.ts`,
-                  sourceType: SourceType.CODE_DIFF,
-                  content: codeA,
-                },
-              ]
-            : undefined,
+          content: changeAContent,
+          fileSnippets: snippetsA.length > 0 ? snippetsA : undefined,
         },
         {
           id: 'change-branch-b',
           label: branchB,
-          content: codeB ?? `Changes from branch: ${branchB}`,
-          fileSnippets: codeB
-            ? [
-                {
-                  filePath: `${branchB}.ts`,
-                  sourceType: SourceType.CODE_DIFF,
-                  content: codeB,
-                },
-              ]
-            : undefined,
+          content: changeBContent,
+          fileSnippets: snippetsB.length > 0 ? snippetsB : undefined,
         },
+        ...bobChanges,
       ],
     };
 
@@ -168,9 +338,12 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
     const extractor = new DeterministicExtractor({ defaultSourceType: SourceType.CODE_DIFF });
     const pipeline = new ExtractionPipeline(extractor);
     const { assumptions, diagnostics } = await pipeline.run(input);
+    const allDiagnostics = [...diagnostics, ...bobDiagnostics];
 
     // Step 2: Normalize
     const normalized = normalizeAssumptions(assumptions);
+
+    session.status = 'VERIFYING';
 
     // Step 3: Detect conflicts
     const rawConflicts = detectConflicts(normalized);
@@ -188,7 +361,7 @@ async function runAnalysis(session: SessionRecord): Promise<void> {
       summary: hasConflictsFound
         ? `${rawConflicts.length} semantic conflict(s) detected. ${assumptions.length} assumptions extracted.`
         : `No semantic conflicts detected. ${assumptions.length} assumptions extracted and all agree.`,
-      warnings: diagnostics.length > 0 ? diagnostics : undefined,
+      warnings: allDiagnostics.length > 0 ? allDiagnostics : undefined,
     };
 
     session.result = result;
@@ -217,6 +390,7 @@ function formatSession(session: SessionRecord) {
     startedAt: session.startedAt,
     completedAt: session.completedAt ?? null,
     input: session.input,
+    merge: session.merge ?? null,
   };
 
   if (session.status === 'ERROR') {
@@ -233,6 +407,8 @@ function formatSession(session: SessionRecord) {
       summary: r.summary,
       assumptionsFound: r.assumptions.length,
       conflictsFound: r.conflicts.length,
+      filesChanged: session.filesChanged ?? null,
+      changedFiles: session.changedFiles ?? [],
       conflicts: r.conflicts.map((c) => ({
         id: c.id,
         conflictType: c.conflictType,
